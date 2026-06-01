@@ -1,0 +1,43 @@
+# Environment files — never commit secrets
+.env
+.env.local
+.env.*.local
+
+# Node / Next.js
+web/node_modules/
+web/.next/
+web/.turbo/
+web/out/
+web/dist/
+web/npm-debug.log*
+web/yarn-debug.log*
+web/yarn-error.log*
+web/.pnpm-debug.log*
+
+# Prisma generated client (regenerated at build time)
+web/node_modules/.prisma/
+
+# Go build artifacts
+tracker/tracker
+tracker/*.exe
+
+# Docker volumes / local data (if ever mounted locally)
+data/
+volumes/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Test coverage
+coverage/
+*.lcov

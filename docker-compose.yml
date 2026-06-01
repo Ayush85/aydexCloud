@@ -1,0 +1,105 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: aydex
+      POSTGRES_USER: aydex
+      POSTGRES_PASSWORD: aydexpass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aydex -d aydex"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+    networks:
+      - aydex
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.3-alpine
+    restart: unless-stopped
+    environment:
+      CLICKHOUSE_DB: analytics
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+      CLICKHOUSE_PASSWORD: ""
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - ./db/clickhouse:/docker-entrypoint-initdb.d:ro
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+      test: ["CMD-SHELL", "clickhouse-client --query 'SELECT 1'"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+      start_period: 30s
+    networks:
+      - aydex
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - aydex
+
+  tracker:
+    build:
+      context: ./tracker
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      CLICKHOUSE_ADDR: clickhouse:9000
+      PORT: 3001
+    ports:
+      - "3001:3001"
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    networks:
+      - aydex
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://aydex:aydexpass@postgres:5432/aydex
+      CLICKHOUSE_HOST: http://clickhouse:8123
+      CLICKHOUSE_DB: analytics
+      NEXTAUTH_SECRET: super-secret-change-me-in-production-32chars
+      NEXTAUTH_URL: http://localhost:3000
+      NEXT_PUBLIC_TRACKER_URL: http://localhost:3001
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+    networks:
+      - aydex
+
+volumes:
+  postgres_data:
+  clickhouse_data:
+  redis_data:
+
+networks:
+  aydex:
+    driver: bridge
