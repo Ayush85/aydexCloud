@@ -17,6 +17,15 @@ const config: Config = {
           700: '#4338ca',
         },
       },
+      backgroundImage: {
+        'grad-purple': 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+        'grad-indigo': 'linear-gradient(135deg, #4f46e5 0%, #6366f1 50%, #8b5cf6 100%)',
+      },
+      boxShadow: {
+        'glow-sm': '0 0 20px 4px rgba(99,102,241,0.2)',
+        'glow-md': '0 0 60px 12px rgba(99,102,241,0.18)',
+        'glow-lg': '0 0 100px 30px rgba(99,102,241,0.15)',
+      },
     },
   },
   plugins: [],
