@@ -33,84 +33,115 @@ export async function GET(
   const days = period === '30d' ? 30 : period === 'today' ? 1 : 7
   const sid = site.trackingId
 
-  const [totals, chart, pages, referrers, devices, browsers] = await Promise.all([
-    query<{ total_views: number; unique_visitors: number }>(`
-      SELECT
-        count()                  AS total_views,
-        uniqExact(visitor_hash)  AS unique_visitors
-      FROM analytics.pageviews
-      WHERE site_id = {sid:String}
-        AND timestamp >= now() - INTERVAL {days:Int32} DAY
-    `, { sid, days }),
+  const [totals, prevTotals, chart, pages, referrers, devices, browsers, campaigns, events] =
+    await Promise.all([
+      // Current period totals
+      query<{ total_views: number; unique_visitors: number }>(`
+        SELECT count() AS total_views, uniqExact(visitor_hash) AS unique_visitors
+        FROM analytics.pageviews
+        WHERE site_id = {sid:String}
+          AND timestamp >= now() - INTERVAL {days:Int32} DAY
+          AND event_name = 'pageview'
+      `, { sid, days }),
 
-    query<{ date: string; views: number; visitors: number }>(`
-      SELECT
-        toStartOfDay(timestamp)  AS date,
-        count()                  AS views,
-        uniqExact(visitor_hash)  AS visitors
-      FROM analytics.pageviews
-      WHERE site_id = {sid:String}
-        AND timestamp >= now() - INTERVAL {days:Int32} DAY
-      GROUP BY date
-      ORDER BY date ASC
-    `, { sid, days }),
+      // Previous period totals (for % comparison)
+      query<{ total_views: number; unique_visitors: number }>(`
+        SELECT count() AS total_views, uniqExact(visitor_hash) AS unique_visitors
+        FROM analytics.pageviews
+        WHERE site_id = {sid:String}
+          AND timestamp >= now() - INTERVAL {prevDays:Int32} DAY
+          AND timestamp <  now() - INTERVAL {days:Int32} DAY
+          AND event_name = 'pageview'
+      `, { sid, days, prevDays: days * 2 }),
 
-    query<{ url: string; views: number; visitors: number }>(`
-      SELECT
-        url,
-        count()                 AS views,
-        uniqExact(visitor_hash) AS visitors
-      FROM analytics.pageviews
-      WHERE site_id = {sid:String}
-        AND timestamp >= now() - INTERVAL {days:Int32} DAY
-      GROUP BY url
-      ORDER BY views DESC
-      LIMIT 10
-    `, { sid, days }),
+      // Chart data
+      query<{ date: string; views: number; visitors: number }>(`
+        SELECT toStartOfDay(timestamp) AS date, count() AS views, uniqExact(visitor_hash) AS visitors
+        FROM analytics.pageviews
+        WHERE site_id = {sid:String}
+          AND timestamp >= now() - INTERVAL {days:Int32} DAY
+          AND event_name = 'pageview'
+        GROUP BY date ORDER BY date ASC
+      `, { sid, days }),
 
-    query<{ referrer: string; views: number }>(`
-      SELECT
-        referrer,
-        count() AS views
-      FROM analytics.pageviews
-      WHERE site_id = {sid:String}
-        AND timestamp >= now() - INTERVAL {days:Int32} DAY
-        AND referrer != ''
-      GROUP BY referrer
-      ORDER BY views DESC
-      LIMIT 10
-    `, { sid, days }),
+      // Top pages
+      query<{ url: string; views: number; visitors: number }>(`
+        SELECT url, count() AS views, uniqExact(visitor_hash) AS visitors
+        FROM analytics.pageviews
+        WHERE site_id = {sid:String}
+          AND timestamp >= now() - INTERVAL {days:Int32} DAY
+          AND event_name = 'pageview'
+        GROUP BY url ORDER BY views DESC LIMIT 10
+      `, { sid, days }),
 
-    query<{ device_type: string; views: number }>(`
-      SELECT
-        device_type,
-        count() AS views
-      FROM analytics.pageviews
-      WHERE site_id = {sid:String}
-        AND timestamp >= now() - INTERVAL {days:Int32} DAY
-      GROUP BY device_type
-      ORDER BY views DESC
-    `, { sid, days }),
+      // Top referrers
+      query<{ referrer: string; views: number }>(`
+        SELECT referrer, count() AS views
+        FROM analytics.pageviews
+        WHERE site_id = {sid:String}
+          AND timestamp >= now() - INTERVAL {days:Int32} DAY
+          AND referrer != '' AND event_name = 'pageview'
+        GROUP BY referrer ORDER BY views DESC LIMIT 10
+      `, { sid, days }),
 
-    query<{ browser: string; views: number }>(`
-      SELECT
-        browser,
-        count() AS views
-      FROM analytics.pageviews
-      WHERE site_id = {sid:String}
-        AND timestamp >= now() - INTERVAL {days:Int32} DAY
-      GROUP BY browser
-      ORDER BY views DESC
-      LIMIT 8
-    `, { sid, days }),
-  ])
+      // Devices
+      query<{ device_type: string; views: number }>(`
+        SELECT device_type, count() AS views
+        FROM analytics.pageviews
+        WHERE site_id = {sid:String}
+          AND timestamp >= now() - INTERVAL {days:Int32} DAY
+          AND event_name = 'pageview'
+        GROUP BY device_type ORDER BY views DESC
+      `, { sid, days }),
+
+      // Browsers
+      query<{ browser: string; views: number }>(`
+        SELECT browser, count() AS views
+        FROM analytics.pageviews
+        WHERE site_id = {sid:String}
+          AND timestamp >= now() - INTERVAL {days:Int32} DAY
+          AND event_name = 'pageview'
+        GROUP BY browser ORDER BY views DESC LIMIT 8
+      `, { sid, days }),
+
+      // UTM campaigns — extracted from URL query string
+      query<{ source: string; medium: string; campaign: string; visits: number; visitors: number }>(`
+        SELECT
+          extract(url, '[?&]utm_source=([^&]+)')   AS source,
+          extract(url, '[?&]utm_medium=([^&]+)')   AS medium,
+          extract(url, '[?&]utm_campaign=([^&]+)') AS campaign,
+          count()                                  AS visits,
+          uniqExact(visitor_hash)                  AS visitors
+        FROM analytics.pageviews
+        WHERE site_id = {sid:String}
+          AND timestamp >= now() - INTERVAL {days:Int32} DAY
+          AND url LIKE '%utm_%'
+          AND event_name = 'pageview'
+        GROUP BY source, medium, campaign
+        HAVING source != '' OR campaign != ''
+        ORDER BY visits DESC LIMIT 20
+      `, { sid, days }),
+
+      // Custom events
+      query<{ event_name: string; count: number; unique_visitors: number }>(`
+        SELECT event_name, count() AS count, uniqExact(visitor_hash) AS unique_visitors
+        FROM analytics.pageviews
+        WHERE site_id = {sid:String}
+          AND timestamp >= now() - INTERVAL {days:Int32} DAY
+          AND event_name != 'pageview'
+        GROUP BY event_name ORDER BY count DESC LIMIT 20
+      `, { sid, days }),
+    ])
 
   return NextResponse.json({
-    totals: totals[0] ?? { total_views: 0, unique_visitors: 0 },
+    totals:     totals[0]     ?? { total_views: 0, unique_visitors: 0 },
+    prevTotals: prevTotals[0] ?? { total_views: 0, unique_visitors: 0 },
     chart,
     pages,
     referrers,
     devices,
     browsers,
+    campaigns,
+    events,
   })
 }

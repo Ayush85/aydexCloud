@@ -19,15 +19,18 @@ model User {
 }
 
 model Site {
-  id         String   @id @default(cuid())
-  userId     String   @map("user_id")
-  name       String
-  domain     String
-  trackingId String   @unique @map("tracking_id")
-  createdAt  DateTime @default(now()) @map("created_at")
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  name         String
+  domain       String
+  trackingId   String   @unique @map("tracking_id")
+  isPublic     Boolean  @default(false) @map("is_public")
+  publicToken  String?  @unique @map("public_token")
+  createdAt    DateTime @default(now()) @map("created_at")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([trackingId])
+  @@index([publicToken])
   @@map("sites")
 }

@@ -25,21 +25,19 @@ export default async function SiteAnalyticsPage({
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Top nav */}
       <header className="bg-white border-b border-slate-200">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-4">
           <Link href="/dashboard" className="font-bold text-brand-600">aydex.cloud</Link>
           <span className="text-slate-300">/</span>
           <span className="text-slate-700 font-medium">{site.name}</span>
           <span className="text-xs text-slate-400 ml-1">{site.domain}</span>
-          <div className="ml-auto flex items-center gap-3 text-sm">
-            <Link href="/dashboard" className="text-slate-500 hover:text-slate-900">← All sites</Link>
+          <div className="ml-auto">
+            <Link href="/dashboard" className="text-sm text-slate-500 hover:text-slate-900">← All sites</Link>
           </div>
         </div>
       </header>
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
-        {/* Snippet card */}
         <details className="card p-4 mb-6 group">
           <summary className="cursor-pointer text-sm font-medium text-slate-700 select-none">
             📋 Tracking snippet — paste before &lt;/head&gt;
@@ -49,7 +47,12 @@ export default async function SiteAnalyticsPage({
           </div>
         </details>
 
-        <AnalyticsDashboard siteId={site.id} siteName={site.name} />
+        <AnalyticsDashboard
+          siteId={site.id}
+          siteName={site.name}
+          isPublic={site.isPublic}
+          publicToken={site.publicToken}
+        />
       </main>
     </div>
   )

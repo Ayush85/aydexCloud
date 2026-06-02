@@ -8,14 +8,15 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
 	clickhouse "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/mileusna/useragent"
+	"github.com/redis/go-redis/v9"
 )
 
-// 1x1 transparent GIF — returned for every /collect hit to avoid broken image icons
 var pixel = []byte{
 	0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x01, 0x00,
 	0x01, 0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -25,7 +26,6 @@ var pixel = []byte{
 	0x01, 0x00, 0x3b,
 }
 
-// trackingScript is served as /script.js — it self-references its own origin for /collect
 const trackingScript = `(function(){
   var s=document.currentScript;
   if(!s)s=document.querySelector('script[data-site]');
@@ -33,29 +33,35 @@ const trackingScript = `(function(){
   var sid=s.getAttribute('data-site');
   if(!sid)return;
   var base=s.src.split('/').slice(0,3).join('/');
-  function send(){
+  function send(eventName,props){
     var p=encodeURIComponent(location.pathname+location.search);
     var r=encodeURIComponent(document.referrer||'');
     var w=screen.width;
-    new Image().src=base+'/collect?s='+sid+'&p='+p+'&r='+r+'&w='+w;
+    var q='?s='+sid+'&p='+p+'&r='+r+'&w='+w;
+    if(eventName&&eventName!=='pageview'){
+      q+='&e='+encodeURIComponent(eventName);
+      if(props)q+='&ep='+encodeURIComponent(JSON.stringify(props));
+    }
+    new Image().src=base+'/collect'+q;
   }
   send();
+  // Expose aydex.track() for custom events
+  window.aydex={track:function(name,props){send(name,props);}};
 })();`
 
-var db clickhouse.Conn
+var (
+	db  clickhouse.Conn
+	rdb *redis.Client
+)
 
 func main() {
-	addr := getEnv("CLICKHOUSE_ADDR", "localhost:9000")
+	chAddr := getEnv("CLICKHOUSE_ADDR", "localhost:9000")
 
 	var err error
 	for i := 0; i < 40; i++ {
 		db, err = clickhouse.Open(&clickhouse.Options{
-			Addr: []string{addr},
-			Auth: clickhouse.Auth{
-				Database: "analytics",
-				Username: "default",
-				Password: "",
-			},
+			Addr:            []string{chAddr},
+			Auth:            clickhouse.Auth{Database: "analytics", Username: "default"},
 			DialTimeout:     5 * time.Second,
 			MaxOpenConns:    20,
 			MaxIdleConns:    5,
@@ -72,12 +78,24 @@ func main() {
 		time.Sleep(3 * time.Second)
 	}
 	if err != nil {
-		log.Fatalf("Cannot connect to ClickHouse after retries: %v", err)
+		log.Fatalf("Cannot connect to ClickHouse: %v", err)
 	}
 	log.Println("Connected to ClickHouse")
 
 	if err := ensureTable(); err != nil {
 		log.Fatalf("Table creation failed: %v", err)
+	}
+
+	// Redis — non-fatal if unavailable (live tracking degrades gracefully)
+	rdb = redis.NewClient(&redis.Options{
+		Addr:        getEnv("REDIS_ADDR", "localhost:6379"),
+		DialTimeout: 3 * time.Second,
+	})
+	if err := rdb.Ping(context.Background()).Err(); err != nil {
+		log.Printf("Redis unavailable (live tracking disabled): %v", err)
+		rdb = nil
+	} else {
+		log.Println("Connected to Redis")
 	}
 
 	mux := http.NewServeMux()
@@ -101,7 +119,9 @@ func ensureTable() error {
 			browser      LowCardinality(String),
 			os           LowCardinality(String),
 			device_type  LowCardinality(String),
-			visitor_hash String
+			visitor_hash String,
+			event_name   LowCardinality(String) DEFAULT 'pageview',
+			event_props  String DEFAULT ''
 		)
 		ENGINE = MergeTree()
 		PARTITION BY toYYYYMM(timestamp)
@@ -113,7 +133,6 @@ func ensureTable() error {
 
 func handleHealth(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("ok"))
 }
 
@@ -128,7 +147,6 @@ func handleCollect(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "image/gif")
-
 	defer w.Write(pixel)
 
 	q := r.URL.Query()
@@ -137,7 +155,6 @@ func handleCollect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse and filter user agent — discard bots
 	rawUA := r.Header.Get("User-Agent")
 	ua := useragent.Parse(rawUA)
 	if ua.Bot {
@@ -148,8 +165,12 @@ func handleCollect(w http.ResponseWriter, r *http.Request) {
 	if pageURL == "" {
 		pageURL = "/"
 	}
-
 	referrer := cleanReferrer(q.Get("r"))
+	eventName := q.Get("e")
+	if eventName == "" {
+		eventName = "pageview"
+	}
+	eventProps := q.Get("ep")
 
 	browser := ua.Name
 	if browser == "" {
@@ -159,7 +180,6 @@ func handleCollect(w http.ResponseWriter, r *http.Request) {
 	if osName == "" {
 		osName = "Unknown"
 	}
-
 	deviceType := "desktop"
 	if ua.Mobile {
 		deviceType = "mobile"
@@ -167,29 +187,35 @@ func handleCollect(w http.ResponseWriter, r *http.Request) {
 		deviceType = "tablet"
 	}
 
-	// Hash IP + UA + site + day — never store raw IP (privacy-first)
 	ip := realIP(r)
 	today := time.Now().UTC().Format("2006-01-02")
 	sum := sha256.Sum256([]byte(siteID + today + ip + rawUA))
-	visitorHash := hex.EncodeToString(sum[:16]) // 16 bytes is plenty
+	visitorHash := hex.EncodeToString(sum[:16])
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	if err := db.Exec(ctx,
 		`INSERT INTO analytics.pageviews
-		 (site_id, timestamp, url, referrer, browser, os, device_type, visitor_hash)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-		siteID,
-		time.Now().UTC(),
-		pageURL,
-		referrer,
-		browser,
-		osName,
-		deviceType,
-		visitorHash,
+		 (site_id, timestamp, url, referrer, browser, os, device_type, visitor_hash, event_name, event_props)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		siteID, time.Now().UTC(), pageURL, referrer,
+		browser, osName, deviceType, visitorHash, eventName, eventProps,
 	); err != nil {
-		log.Printf("Insert error: %v", err)
+		log.Printf("CH insert error: %v", err)
+	}
+
+	// Track live visitor in Redis (sorted set, 10-min TTL per key)
+	if rdb != nil {
+		now := time.Now().Unix()
+		pipe := rdb.Pipeline()
+		pipe.ZAdd(ctx, "live:"+siteID, redis.Z{Score: float64(now), Member: visitorHash})
+		pipe.ZRemRangeByScore(ctx, "live:"+siteID, "-inf",
+			strconv.FormatInt(time.Now().Add(-10*time.Minute).Unix(), 10))
+		pipe.Expire(ctx, "live:"+siteID, 15*time.Minute)
+		if _, err := pipe.Exec(ctx); err != nil {
+			log.Printf("Redis pipeline error: %v", err)
+		}
 	}
 }
 
@@ -219,9 +245,7 @@ func cleanReferrer(raw string) string {
 	if err != nil || u.Host == "" {
 		return ""
 	}
-	host := u.Host
-	host = strings.TrimPrefix(host, "www.")
-	return host
+	return strings.TrimPrefix(u.Host, "www.")
 }
 
 func getEnv(key, def string) string {
