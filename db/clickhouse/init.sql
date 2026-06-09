@@ -9,7 +9,9 @@ CREATE TABLE IF NOT EXISTS analytics.pageviews
     browser      LowCardinality(String),
     os           LowCardinality(String),
     device_type  LowCardinality(String),
-    visitor_hash String
+    visitor_hash String,
+    event_name   LowCardinality(String) DEFAULT 'pageview',
+    event_props  String DEFAULT ''
 )
 ENGINE = MergeTree()
 PARTITION BY toYYYYMM(timestamp)
