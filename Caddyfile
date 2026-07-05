@@ -1,0 +1,7 @@
+aydex.cloud, www.aydex.cloud {
+	reverse_proxy web:3000
+}
+
+t.aydex.cloud {
+	reverse_proxy tracker:3001
+}

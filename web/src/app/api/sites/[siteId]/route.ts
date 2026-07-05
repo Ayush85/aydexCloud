@@ -22,17 +22,27 @@ export async function PATCH(
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
-  const { isPublic } = await req.json()
+  const body = await req.json()
+  const data: { isPublic?: boolean; publicToken?: string; storageMode?: string } = {}
 
-  // Auto-generate a public token the first time sharing is enabled
-  let publicToken = site.publicToken
-  if (isPublic && !publicToken) {
-    publicToken = randomBytes(14).toString('hex')
+  if (typeof body.isPublic === 'boolean') {
+    data.isPublic = body.isPublic
+    // Auto-generate a public token the first time sharing is enabled
+    if (body.isPublic && !site.publicToken) {
+      data.publicToken = randomBytes(14).toString('hex')
+    }
+  }
+
+  if (typeof body.storageMode === 'string') {
+    if (!['memory', 'sessionStorage', 'localStorage'].includes(body.storageMode)) {
+      return NextResponse.json({ error: 'Invalid storage mode' }, { status: 400 })
+    }
+    data.storageMode = body.storageMode
   }
 
   const updated = await prisma.site.update({
     where: { id: params.siteId },
-    data: { isPublic, publicToken },
+    data,
   })
 
   return NextResponse.json(updated)

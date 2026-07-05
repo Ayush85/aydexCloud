@@ -32,17 +32,65 @@ const trackingScript = `(function(){
   if(!s)return;
   var sid=s.getAttribute('data-site');
   if(!sid)return;
-  var base=s.src.split('/').slice(0,3).join('/');
+  var base=s.src.substring(0,s.src.lastIndexOf('/'));
+  var storageMode=s.getAttribute('data-storage')||'';
+  var dataKey=s.getAttribute('data-key')||'';
+
+  // Optional persistent, encrypted anonymous visitor id (opt-in via data-storage).
+  // Default (no data-storage / "memory") keeps today's behavior: no client storage at all.
+  async function deriveKey(passphrase,salt){
+    var bk=await crypto.subtle.importKey('raw',new TextEncoder().encode(passphrase),'PBKDF2',false,['deriveKey']);
+    return crypto.subtle.deriveKey({name:'PBKDF2',salt:new TextEncoder().encode(salt),iterations:100000,hash:'SHA-256'},bk,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  }
+  function toB64(bytes){var bin='';for(var i=0;i<bytes.length;i++)bin+=String.fromCharCode(bytes[i]);return btoa(bin);}
+  function fromB64(b64){var bin=atob(b64);var bytes=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);return bytes;}
+  async function encryptVal(plaintext,key){
+    var iv=crypto.getRandomValues(new Uint8Array(12));
+    var ct=await crypto.subtle.encrypt({name:'AES-GCM',iv:iv},key,new TextEncoder().encode(plaintext));
+    var combined=new Uint8Array(iv.length+ct.byteLength);
+    combined.set(iv,0);combined.set(new Uint8Array(ct),iv.length);
+    return toB64(combined);
+  }
+  async function decryptVal(encoded,key){
+    var combined=fromB64(encoded);
+    var iv=combined.slice(0,12);
+    var ct=combined.slice(12);
+    var pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:iv},key,ct);
+    return new TextDecoder().decode(pt);
+  }
+  async function getVisitorId(){
+    if(!storageMode||storageMode==='memory')return '';
+    try{
+      var store=storageMode==='localStorage'?window.localStorage:window.sessionStorage;
+      var existing=store.getItem('aydex_vid');
+      var key=dataKey?await deriveKey(dataKey,sid):null;
+      if(existing){
+        if(key){
+          try{return await decryptVal(existing,key);}catch(e){/* corrupt/undecryptable — fall through and regenerate */}
+        }else{
+          return existing;
+        }
+      }
+      var id=(crypto.randomUUID?crypto.randomUUID():(Date.now()+'-'+Math.random().toString(36).slice(2)));
+      store.setItem('aydex_vid',key?(await encryptVal(id,key)):id);
+      return id;
+    }catch(e){return '';}
+  }
+  var vidPromise=getVisitorId();
+
   function send(eventName,props){
-    var p=encodeURIComponent(location.pathname+location.search);
-    var r=encodeURIComponent(document.referrer||'');
-    var w=screen.width;
-    var q='?s='+sid+'&p='+p+'&r='+r+'&w='+w;
-    if(eventName&&eventName!=='pageview'){
-      q+='&e='+encodeURIComponent(eventName);
-      if(props)q+='&ep='+encodeURIComponent(JSON.stringify(props));
-    }
-    new Image().src=base+'/collect'+q;
+    vidPromise.then(function(vid){
+      var p=encodeURIComponent(location.pathname+location.search);
+      var r=encodeURIComponent(document.referrer||'');
+      var w=screen.width;
+      var q='?s='+sid+'&p='+p+'&r='+r+'&w='+w;
+      if(vid)q+='&v='+encodeURIComponent(vid);
+      if(eventName&&eventName!=='pageview'){
+        q+='&e='+encodeURIComponent(eventName);
+        if(props)q+='&ep='+encodeURIComponent(JSON.stringify(props));
+      }
+      new Image().src=base+'/collect'+q;
+    });
   }
   send();
   // Expose aydex.track() for custom events
@@ -187,10 +235,19 @@ func handleCollect(w http.ResponseWriter, r *http.Request) {
 		deviceType = "tablet"
 	}
 
-	ip := realIP(r)
-	today := time.Now().UTC().Format("2006-01-02")
-	sum := sha256.Sum256([]byte(siteID + today + ip + rawUA))
-	visitorHash := hex.EncodeToString(sum[:16])
+	// If the tracking snippet sent a persistent client-side visitor id (opt-in via
+	// data-storage on the snippet), hash that instead — stable across days for the
+	// same visitor. Otherwise fall back to the default daily-rotating IP+UA hash.
+	var visitorHash string
+	if vid := strings.TrimSpace(q.Get("v")); vid != "" {
+		sum := sha256.Sum256([]byte(siteID + vid))
+		visitorHash = hex.EncodeToString(sum[:16])
+	} else {
+		ip := realIP(r)
+		today := time.Now().UTC().Format("2006-01-02")
+		sum := sha256.Sum256([]byte(siteID + today + ip + rawUA))
+		visitorHash = hex.EncodeToString(sum[:16])
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()

@@ -26,11 +26,29 @@ model Site {
   trackingId   String   @unique @map("tracking_id")
   isPublic     Boolean  @default(false) @map("is_public")
   publicToken  String?  @unique @map("public_token")
+  storageMode  String   @default("memory") @map("storage_mode")
   createdAt    DateTime @default(now()) @map("created_at")
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  charts       Chart[]
 
   @@index([userId])
   @@index([trackingId])
   @@index([publicToken])
   @@map("sites")
+}
+
+model Chart {
+  id          String   @id @default(cuid())
+  siteId      String   @map("site_id")
+  name        String
+  metric      String
+  dimension   String
+  chartType   String   @map("chart_type")
+  filterField String?  @map("filter_field")
+  filterValue String?  @map("filter_value")
+  createdAt   DateTime @default(now()) @map("created_at")
+  site        Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([siteId])
+  @@map("charts")
 }

@@ -8,9 +8,12 @@ import { DeviceBreakdown } from './DeviceBreakdown'
 import { LiveBadge } from './LiveBadge'
 import { CampaignsTable } from './CampaignsTable'
 import { SharePanel } from './SharePanel'
+import { CustomCharts } from './CustomCharts'
+import { DataStorageInfo } from './DataStorageInfo'
+import { EncryptionPanel } from './EncryptionPanel'
 
 type Period = 'today' | '7d' | '30d'
-type Tab = 'overview' | 'campaigns' | 'share'
+type Tab = 'overview' | 'campaigns' | 'custom' | 'privacy' | 'encryption' | 'share'
 
 interface AnalyticsData {
   totals:     { total_views: number; unique_visitors: number }
@@ -27,6 +30,7 @@ interface AnalyticsData {
 interface Props {
   siteId: string
   siteName: string
+  trackingId: string
   isPublic: boolean
   publicToken: string | null
 }
@@ -40,10 +44,13 @@ const PERIODS: { key: Period; label: string }[] = [
 const TABS: { key: Tab; label: string }[] = [
   { key: 'overview',   label: 'Overview' },
   { key: 'campaigns',  label: 'Campaigns & Events' },
+  { key: 'custom',     label: 'Custom Charts' },
+  { key: 'privacy',    label: 'Privacy & Data' },
+  { key: 'encryption', label: 'Encryption' },
   { key: 'share',      label: 'Share & API' },
 ]
 
-export function AnalyticsDashboard({ siteId, siteName, isPublic, publicToken }: Props) {
+export function AnalyticsDashboard({ siteId, siteName, trackingId, isPublic, publicToken }: Props) {
   const [period, setPeriod] = useState<Period>('7d')
   const [tab, setTab]       = useState<Tab>('overview')
   const [data, setData]     = useState<AnalyticsData | null>(null)
@@ -74,7 +81,7 @@ export function AnalyticsDashboard({ siteId, siteName, isPublic, publicToken }: 
     <div>
       {/* Tab bar */}
       <div className="flex items-center justify-between mb-1">
-        <div className="flex gap-1 border-b border-slate-200 w-full">
+        <div className="flex gap-1 border-b border-slate-200 w-full overflow-x-auto">
           {TABS.map((t) => (
             <button
               key={t.key}
@@ -189,6 +196,21 @@ export function AnalyticsDashboard({ siteId, siteName, isPublic, publicToken }: 
         ) : data ? (
           <CampaignsTable campaigns={data.campaigns} events={data.events} />
         ) : null
+      )}
+
+      {/* ── Custom Charts tab ────────────────────────────── */}
+      {tab === 'custom' && <CustomCharts siteId={siteId} />}
+
+      {/* ── Privacy & Data tab ───────────────────────────── */}
+      {tab === 'privacy' && <DataStorageInfo />}
+
+      {/* ── Encryption tab ───────────────────────────────── */}
+      {tab === 'encryption' && (
+        <EncryptionPanel
+          siteId={siteId}
+          trackingId={trackingId}
+          eventNames={data?.events.map((e) => e.event_name) ?? []}
+        />
       )}
 
       {/* ── Share & API tab ──────────────────────────────── */}

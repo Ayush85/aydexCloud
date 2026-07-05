@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { AnalyticsDashboard } from '@/components/AnalyticsDashboard'
+import { TrackingSnippet } from '@/components/TrackingSnippet'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,7 +22,6 @@ export default async function SiteAnalyticsPage({
   if (!site) notFound()
 
   const trackerUrl = process.env.NEXT_PUBLIC_TRACKER_URL ?? 'http://localhost:3001'
-  const snippet = `<script defer data-site="${site.trackingId}" src="${trackerUrl}/script.js"></script>`
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -38,18 +38,17 @@ export default async function SiteAnalyticsPage({
       </header>
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
-        <details className="card p-4 mb-6 group">
-          <summary className="cursor-pointer text-sm font-medium text-slate-700 select-none">
-            📋 Tracking snippet — paste before &lt;/head&gt;
-          </summary>
-          <div className="mt-3 bg-slate-900 rounded-lg p-3 overflow-x-auto">
-            <code className="text-green-400 text-xs font-mono whitespace-nowrap">{snippet}</code>
-          </div>
-        </details>
+        <TrackingSnippet
+          siteId={site.id}
+          trackingId={site.trackingId}
+          trackerUrl={trackerUrl}
+          initialStorageMode={site.storageMode}
+        />
 
         <AnalyticsDashboard
           siteId={site.id}
           siteName={site.name}
+          trackingId={site.trackingId}
           isPublic={site.isPublic}
           publicToken={site.publicToken}
         />
