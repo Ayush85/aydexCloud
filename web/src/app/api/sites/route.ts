@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { randomBytes } from 'crypto'
+import { PLANS } from '@/lib/plans'
+import { syncSiteQuota } from '@/lib/quota'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,6 +33,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Name and domain are required.' }, { status: 400 })
   }
 
+  const user = await prisma.user.findUnique({ where: { id: session.user.id } })
+  const siteCount = await prisma.site.count({ where: { userId: session.user.id } })
+  const maxSites = PLANS[user!.planTier].maxSites
+  if (siteCount >= maxSites) {
+    return NextResponse.json(
+      { error: `Your ${PLANS[user!.planTier].label} plan allows up to ${maxSites} site(s). Upgrade to add more.` },
+      { status: 403 }
+    )
+  }
+
   const cleanDomain = domain
     .toLowerCase()
     .replace(/^https?:\/\//, '')
@@ -47,6 +59,8 @@ export async function POST(req: NextRequest) {
       trackingId,
     },
   })
+
+  await syncSiteQuota(site.id)
 
   return NextResponse.json(site, { status: 201 })
 }

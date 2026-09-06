@@ -9,8 +9,8 @@ export const ch =
   createClient({
     url: process.env.CLICKHOUSE_HOST ?? 'http://localhost:8123',
     database: process.env.CLICKHOUSE_DB ?? 'analytics',
-    username: 'default',
-    password: '',
+    username: process.env.CLICKHOUSE_USER ?? 'default',
+    password: process.env.CLICKHOUSE_PASSWORD ?? '',
     request_timeout: 30_000,
     clickhouse_settings: {
       async_insert: 0,

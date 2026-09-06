@@ -1,19 +1,38 @@
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  // Pooled connection (e.g. Neon/Supabase pgbouncer) — what Prisma Client
+  // uses at runtime, safe under serverless' high connection concurrency.
+  url       = env("DATABASE_URL")
+  // Unpooled connection, used only by the Prisma CLI (db push/migrate),
+  // which needs a direct session for schema changes. Point it at the same
+  // database as DATABASE_URL but bypassing the pooler.
+  directUrl = env("DIRECT_URL")
 }
 
 generator client {
   provider = "prisma-client-js"
 }
 
+enum PlanTier {
+  FREE
+  STARTER
+  PRO
+  AGENCY
+}
+
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String   @map("password_hash")
-  name         String?
-  createdAt    DateTime @default(now()) @map("created_at")
-  sites        Site[]
+  id                     String    @id @default(cuid())
+  email                  String    @unique
+  passwordHash           String    @map("password_hash")
+  name                   String?
+  createdAt              DateTime  @default(now()) @map("created_at")
+  planTier               PlanTier  @default(FREE) @map("plan_tier")
+  stripeCustomerId       String?   @unique @map("stripe_customer_id")
+  stripeSubscriptionId   String?   @unique @map("stripe_subscription_id")
+  stripeCurrentPeriodEnd DateTime? @map("stripe_current_period_end")
+  emailDigestEnabled     Boolean   @default(true) @map("email_digest_enabled")
+  sites                  Site[]
+  apiKeys                ApiKey[]
 
   @@map("users")
 }
@@ -30,11 +49,39 @@ model Site {
   createdAt    DateTime @default(now()) @map("created_at")
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   charts       Chart[]
+  goals        Goal[]
 
   @@index([userId])
   @@index([trackingId])
   @@index([publicToken])
   @@map("sites")
+}
+
+model Goal {
+  id         String   @id @default(cuid())
+  siteId     String   @map("site_id")
+  name       String
+  type       String   // "pageview" | "event"
+  matchValue String   @map("match_value")
+  createdAt  DateTime @default(now()) @map("created_at")
+  site       Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([siteId])
+  @@map("goals")
+}
+
+model ApiKey {
+  id         String    @id @default(cuid())
+  userId     String    @map("user_id")
+  name       String
+  keyHash    String    @unique @map("key_hash")
+  keyPrefix  String    @map("key_prefix")
+  lastUsedAt DateTime? @map("last_used_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("api_keys")
 }
 
 model Chart {

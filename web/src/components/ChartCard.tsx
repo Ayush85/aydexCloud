@@ -59,13 +59,13 @@ export function ChartCard({ chart, siteId, period, onDelete }: Props) {
   return (
     <div className="card p-5">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-medium text-slate-700">{chart.name}</h3>
+        <h3 className="text-sm font-medium text-slate-700 dark:text-zinc-300">{chart.name}</h3>
         {confirming ? (
           <div className="flex gap-1">
             <button onClick={handleDelete} className="text-xs px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700">
               Delete
             </button>
-            <button onClick={() => setConfirming(false)} className="text-xs px-2 py-1 text-slate-500 hover:text-slate-700">
+            <button onClick={() => setConfirming(false)} className="text-xs px-2 py-1 text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-200">
               Cancel
             </button>
           </div>
@@ -73,7 +73,7 @@ export function ChartCard({ chart, siteId, period, onDelete }: Props) {
           <button
             onClick={() => setConfirming(true)}
             title="Delete chart"
-            className="text-slate-300 hover:text-red-400 transition-colors text-lg leading-none"
+            className="text-slate-300 dark:text-zinc-600 hover:text-red-400 transition-colors text-lg leading-none"
           >
             ×
           </button>
@@ -81,11 +81,11 @@ export function ChartCard({ chart, siteId, period, onDelete }: Props) {
       </div>
 
       {loading ? (
-        <div className="h-40 animate-pulse bg-slate-100 rounded-lg" />
+        <div className="h-40 animate-pulse bg-slate-100 dark:bg-zinc-800 rounded-lg" />
       ) : rows.length === 0 ? (
-        <div className="h-40 flex items-center justify-center text-slate-400 text-sm">No data yet</div>
+        <div className="h-40 flex items-center justify-center text-slate-400 dark:text-zinc-500 text-sm">No data yet</div>
       ) : chart.chartType === 'number' ? (
-        <div className="text-4xl font-extrabold text-slate-900 py-4">{fmt(rows[0]?.value ?? 0)}</div>
+        <div className="text-4xl font-extrabold text-slate-900 dark:text-zinc-100 py-4">{fmt(rows[0]?.value ?? 0)}</div>
       ) : chart.chartType === 'pie' ? (
         <div className="flex gap-4 items-center">
           <ResponsiveContainer width={140} height={140}>
@@ -93,17 +93,17 @@ export function ChartCard({ chart, siteId, period, onDelete }: Props) {
               <Pie data={rows} cx="50%" cy="50%" innerRadius={36} outerRadius={60} dataKey="value" strokeWidth={0}>
                 {rows.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
               </Pie>
-              <Tooltip contentStyle={{ border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 12 }} />
+              <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'inherit' }} />
             </PieChart>
           </ResponsiveContainer>
           <ul className="flex-1 space-y-1">
             {rows.map((r, i) => (
               <li key={i} className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-2 text-slate-600 truncate">
+                <span className="flex items-center gap-2 text-slate-600 dark:text-zinc-400 truncate">
                   <span className="w-2.5 h-2.5 rounded-full inline-block shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
                   <span className="truncate">{r.label || 'Unknown'}</span>
                 </span>
-                <span className="text-slate-500 tabular-nums">{fmt(r.value)}</span>
+                <span className="text-slate-500 dark:text-zinc-400 tabular-nums">{fmt(r.value)}</span>
               </li>
             ))}
           </ul>
@@ -111,20 +111,20 @@ export function ChartCard({ chart, siteId, period, onDelete }: Props) {
       ) : chart.chartType === 'bar' ? (
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={rows} margin={{ top: 5, right: 10, bottom: 0, left: -10 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-            <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} allowDecimals={false} />
-            <Tooltip contentStyle={{ border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 12 }} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+            <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--chart-axis)' }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 11, fill: 'var(--chart-axis)' }} axisLine={false} tickLine={false} allowDecimals={false} />
+            <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'inherit' }} />
             <Bar dataKey="value" fill="#6366f1" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       ) : (
         <ResponsiveContainer width="100%" height={220}>
           <LineChart data={rows} margin={{ top: 5, right: 10, bottom: 0, left: -10 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-            <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} allowDecimals={false} />
-            <Tooltip contentStyle={{ border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 12 }} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+            <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--chart-axis)' }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 11, fill: 'var(--chart-axis)' }} axisLine={false} tickLine={false} allowDecimals={false} />
+            <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'inherit' }} />
             <Line type="monotone" dataKey="value" stroke="#6366f1" strokeWidth={2} dot={false} />
           </LineChart>
         </ResponsiveContainer>

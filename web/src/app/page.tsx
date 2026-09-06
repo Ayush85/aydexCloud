@@ -184,6 +184,7 @@ const features = [
 const plans = [
   {
     name: 'Free',
+    tier: null,
     price: '$0',
     sites: '1 website',
     pv: '10,000 pageviews/mo',
@@ -193,6 +194,7 @@ const plans = [
   },
   {
     name: 'Starter',
+    tier: 'STARTER',
     price: '$7',
     sites: '3 websites',
     pv: '100,000 pageviews/mo',
@@ -202,6 +204,7 @@ const plans = [
   },
   {
     name: 'Pro',
+    tier: 'PRO',
     price: '$19',
     sites: '10 websites',
     pv: '1,000,000 pageviews/mo',
@@ -211,6 +214,7 @@ const plans = [
   },
   {
     name: 'Agency',
+    tier: 'AGENCY',
     price: '$49',
     sites: 'Unlimited',
     pv: '10,000,000 pageviews/mo',
@@ -486,7 +490,7 @@ export default function LandingPage() {
               </ul>
 
               <Link
-                href="/auth/signup"
+                href={p.tier ? `/auth/signup?plan=${p.tier.toLowerCase()}` : '/auth/signup'}
                 className={`block rounded-xl py-2.5 text-center text-sm font-semibold transition-colors ${
                   p.highlight
                     ? 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-glow-sm'

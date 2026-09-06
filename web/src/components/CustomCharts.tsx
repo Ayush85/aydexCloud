@@ -101,13 +101,13 @@ export function CustomCharts({ siteId }: Props) {
         <button onClick={() => setShowForm((v) => !v)} className="btn-primary text-sm">
           {showForm ? 'Cancel' : '+ New chart'}
         </button>
-        <div className="flex gap-1 bg-white border border-slate-200 rounded-lg p-1">
+        <div className="flex gap-1 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg p-1">
           {PERIODS.map((p) => (
             <button
               key={p.key}
               onClick={() => setPeriod(p.key)}
               className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                period === p.key ? 'bg-brand-600 text-white' : 'text-slate-600 hover:text-slate-900'
+                period === p.key ? 'bg-brand-600 text-white' : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100'
               }`}
             >
               {p.label}
@@ -119,7 +119,7 @@ export function CustomCharts({ siteId }: Props) {
       {showForm && (
         <form onSubmit={handleCreate} className="card p-5 space-y-4">
           <div>
-            <label className="text-sm font-medium text-slate-700 block mb-1">Chart name</label>
+            <label className="text-sm font-medium text-slate-700 dark:text-zinc-300 block mb-1">Chart name</label>
             <input
               className="input"
               value={name}
@@ -130,19 +130,19 @@ export function CustomCharts({ siteId }: Props) {
           </div>
           <div className="grid sm:grid-cols-3 gap-4">
             <div>
-              <label className="text-sm font-medium text-slate-700 block mb-1">Metric</label>
+              <label className="text-sm font-medium text-slate-700 dark:text-zinc-300 block mb-1">Metric</label>
               <select className="input" value={metric} onChange={(e) => setMetric(e.target.value)}>
                 {METRIC_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
             <div>
-              <label className="text-sm font-medium text-slate-700 block mb-1">Group by</label>
+              <label className="text-sm font-medium text-slate-700 dark:text-zinc-300 block mb-1">Group by</label>
               <select className="input" value={dimension} onChange={(e) => setDimension(e.target.value)}>
                 {DIMENSION_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
             <div>
-              <label className="text-sm font-medium text-slate-700 block mb-1">Chart type</label>
+              <label className="text-sm font-medium text-slate-700 dark:text-zinc-300 block mb-1">Chart type</label>
               <select className="input" value={chartType} onChange={(e) => setChartType(e.target.value)}>
                 {CHART_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
@@ -150,14 +150,14 @@ export function CustomCharts({ siteId }: Props) {
           </div>
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium text-slate-700 block mb-1">Filter by (optional)</label>
+              <label className="text-sm font-medium text-slate-700 dark:text-zinc-300 block mb-1">Filter by (optional)</label>
               <select className="input" value={filterField} onChange={(e) => setFilterField(e.target.value)}>
                 <option value="">No filter</option>
                 {FILTER_FIELD_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
             <div>
-              <label className="text-sm font-medium text-slate-700 block mb-1">Filter value</label>
+              <label className="text-sm font-medium text-slate-700 dark:text-zinc-300 block mb-1">Filter value</label>
               <input
                 className="input"
                 value={filterValue}
@@ -175,10 +175,10 @@ export function CustomCharts({ siteId }: Props) {
 
       {loading ? (
         <div className="grid md:grid-cols-2 gap-6">
-          {[1, 2].map((i) => <div key={i} className="card p-6 h-56 animate-pulse bg-slate-100" />)}
+          {[1, 2].map((i) => <div key={i} className="card p-6 h-56 animate-pulse bg-slate-100 dark:bg-zinc-800" />)}
         </div>
       ) : charts.length === 0 ? (
-        <div className="card p-10 text-center text-slate-400 text-sm">
+        <div className="card p-10 text-center text-slate-400 dark:text-zinc-500 text-sm">
           <p className="mb-2 text-2xl">📊</p>
           No custom charts yet. Build your own from any metric, dimension, and filter.
         </div>

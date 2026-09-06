@@ -3,6 +3,9 @@
 .env.local
 .env.*.local
 
+# Claude Code local settings — personal, and has held real credentials before
+.claude/settings.local.json
+
 # Node / Next.js
 web/node_modules/
 web/.next/
@@ -25,6 +28,12 @@ tracker/*.exe
 data/
 volumes/
 
+# GeoIP database — fetched via scripts/update-geoip.sh, not committed
+db/geoip/*.mmdb
+
+# Sentry source map upload artifacts
+web/.sentryclirc
+
 # OS / editor
 .DS_Store
 Thumbs.db
@@ -41,3 +50,6 @@ logs/
 # Test coverage
 coverage/
 *.lcov
+
+# TypeScript incremental build cache
+web/tsconfig.tsbuildinfo

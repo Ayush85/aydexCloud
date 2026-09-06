@@ -37,9 +37,9 @@ export function PageviewsChart({ data, period }: Props) {
 
   return (
     <div className="card p-5">
-      <h3 className="text-sm font-medium text-slate-700 mb-4">Pageviews over time</h3>
+      <h3 className="text-sm font-medium text-slate-700 dark:text-zinc-300 mb-4">Pageviews over time</h3>
       {data.length === 0 ? (
-        <div className="h-48 flex items-center justify-center text-slate-400 text-sm">
+        <div className="h-48 flex items-center justify-center text-slate-400 dark:text-zinc-500 text-sm">
           No data yet — install the tracking snippet to start collecting visits.
         </div>
       ) : (
@@ -55,21 +55,21 @@ export function PageviewsChart({ data, period }: Props) {
                 <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
             <XAxis
               dataKey="label"
-              tick={{ fontSize: 11, fill: '#94a3b8' }}
+              tick={{ fontSize: 11, fill: 'var(--chart-axis)' }}
               axisLine={false}
               tickLine={false}
             />
             <YAxis
-              tick={{ fontSize: 11, fill: '#94a3b8' }}
+              tick={{ fontSize: 11, fill: 'var(--chart-axis)' }}
               axisLine={false}
               tickLine={false}
               allowDecimals={false}
             />
             <Tooltip
-              contentStyle={{ border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 12 }}
+              contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'inherit' }}
               labelStyle={{ fontWeight: 600 }}
             />
             <Area

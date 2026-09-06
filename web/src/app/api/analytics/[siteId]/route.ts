@@ -33,7 +33,9 @@ export async function GET(
   const days = period === '30d' ? 30 : period === 'today' ? 1 : 7
   const sid = site.trackingId
 
-  const [totals, prevTotals, chart, pages, referrers, devices, browsers, campaigns, events] =
+  const goals = await prisma.goal.findMany({ where: { siteId: site.id } })
+
+  const [totals, prevTotals, chart, pages, referrers, devices, browsers, campaigns, events, countries, goalStats] =
     await Promise.all([
       // Current period totals
       query<{ total_views: number; unique_visitors: number }>(`
@@ -131,6 +133,38 @@ export async function GET(
           AND event_name != 'pageview'
         GROUP BY event_name ORDER BY count DESC LIMIT 20
       `, { sid, days }),
+
+      // Countries (empty when the tracker has no GeoIP database configured)
+      query<{ country: string; views: number }>(`
+        SELECT country, count() AS views
+        FROM analytics.pageviews
+        WHERE site_id = {sid:String}
+          AND timestamp >= now() - INTERVAL {days:Int32} DAY
+          AND event_name = 'pageview' AND country != ''
+        GROUP BY country ORDER BY views DESC LIMIT 10
+      `, { sid, days }),
+
+      // Goal completions
+      Promise.all(
+        goals.map(async (goal) => {
+          const condition =
+            goal.type === 'event' ? `event_name = {mv:String}` : `url = {mv:String}`
+          const rows = await query<{ completions: number }>(`
+            SELECT uniqExact(visitor_hash) AS completions
+            FROM analytics.pageviews
+            WHERE site_id = {sid:String}
+              AND timestamp >= now() - INTERVAL {days:Int32} DAY
+              AND ${condition}
+          `, { sid, days, mv: goal.matchValue })
+          return {
+            id: goal.id,
+            name: goal.name,
+            type: goal.type,
+            matchValue: goal.matchValue,
+            completions: rows[0]?.completions ?? 0,
+          }
+        })
+      ),
     ])
 
   return NextResponse.json({
@@ -143,5 +177,11 @@ export async function GET(
     browsers,
     campaigns,
     events,
+    countries,
+    goals: goalStats.map((g) => ({
+      ...g,
+      conversionRate:
+        totals[0]?.unique_visitors ? g.completions / totals[0].unique_visitors : 0,
+    })),
   })
 }

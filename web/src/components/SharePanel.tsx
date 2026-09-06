@@ -46,8 +46,8 @@ export function SharePanel({ siteId, initialIsPublic, initialPublicToken }: Prop
       {/* Toggle */}
       <div className="card p-5 flex items-start justify-between gap-4">
         <div>
-          <p className="font-semibold text-slate-900">Public dashboard</p>
-          <p className="text-sm text-slate-500 mt-0.5">
+          <p className="font-semibold text-slate-900 dark:text-zinc-100">Public dashboard</p>
+          <p className="text-sm text-slate-500 dark:text-zinc-400 mt-0.5">
             Share a read-only view of your analytics with anyone — no login required.
           </p>
         </div>
@@ -55,7 +55,7 @@ export function SharePanel({ siteId, initialIsPublic, initialPublicToken }: Prop
           onClick={toggle}
           disabled={loading}
           className={`relative mt-0.5 inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none disabled:opacity-50 ${
-            isPublic ? 'bg-brand-600' : 'bg-slate-200'
+            isPublic ? 'bg-brand-600' : 'bg-slate-200 dark:bg-zinc-700'
           }`}
           aria-pressed={isPublic}
         >
@@ -70,7 +70,7 @@ export function SharePanel({ siteId, initialIsPublic, initialPublicToken }: Prop
       {/* Link */}
       {isPublic && publicUrl && (
         <div className="card p-5 space-y-3">
-          <p className="text-sm font-medium text-slate-700">Public link</p>
+          <p className="text-sm font-medium text-slate-700 dark:text-zinc-300">Public link</p>
           <div className="flex gap-2">
             <input
               readOnly
@@ -98,7 +98,7 @@ export function SharePanel({ siteId, initialIsPublic, initialPublicToken }: Prop
       {/* Embed snippet */}
       {isPublic && (
         <div className="card p-5 space-y-3">
-          <p className="text-sm font-medium text-slate-700">Embed on your site</p>
+          <p className="text-sm font-medium text-slate-700 dark:text-zinc-300">Embed on your site</p>
           <div className="rounded-lg bg-slate-900 p-3 overflow-x-auto">
             <code className="text-green-400 text-xs font-mono whitespace-nowrap">
               {`<iframe src="${publicUrl}" width="100%" height="600" frameborder="0"></iframe>`}
@@ -109,9 +109,9 @@ export function SharePanel({ siteId, initialIsPublic, initialPublicToken }: Prop
 
       {/* Custom events guide */}
       <div className="card p-5 space-y-3">
-        <p className="text-sm font-medium text-slate-700">Track custom events</p>
-        <p className="text-xs text-slate-500">
-          Once the tracking snippet is installed, call <code className="bg-slate-100 px-1 rounded">aydex.track()</code> anywhere in your JS:
+        <p className="text-sm font-medium text-slate-700 dark:text-zinc-300">Track custom events</p>
+        <p className="text-xs text-slate-500 dark:text-zinc-400">
+          Once the tracking snippet is installed, call <code className="bg-slate-100 dark:bg-zinc-800 px-1 rounded">aydex.track()</code> anywhere in your JS:
         </p>
         <div className="rounded-lg bg-slate-900 p-3 overflow-x-auto space-y-1">
           {[
@@ -132,7 +132,7 @@ export function SharePanel({ siteId, initialIsPublic, initialPublicToken }: Prop
             </div>
           ))}
         </div>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-slate-400 dark:text-zinc-500">
           Events appear in the <strong>Campaigns & Events</strong> tab under &ldquo;Custom Events&rdquo;.
         </p>
       </div>

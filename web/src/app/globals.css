@@ -3,27 +3,39 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --chart-grid: #f1f5f9;
+    --chart-axis: #94a3b8;
+    --chart-tooltip-bg: #ffffff;
+    --chart-tooltip-border: #e2e8f0;
+  }
+  .dark {
+    --chart-grid: #27272a;
+    --chart-axis: #71717a;
+    --chart-tooltip-bg: #18181b;
+    --chart-tooltip-border: #3f3f46;
+  }
   body {
-    @apply bg-slate-50 text-slate-900 antialiased;
+    @apply bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 antialiased transition-colors duration-150;
   }
 }
 
 @layer components {
-  /* ── Light theme (dashboard / auth) ─────────────────── */
+  /* ── Dashboard / auth (theme-aware) ──────────────────── */
   .card {
-    @apply bg-white rounded-xl border border-slate-200 shadow-sm;
+    @apply bg-white dark:bg-zinc-900 rounded-xl border border-slate-200 dark:border-zinc-800 shadow-sm dark:shadow-none;
   }
   .btn-primary {
     @apply bg-brand-600 hover:bg-brand-700 text-white font-medium py-2 px-4 rounded-lg
            transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-secondary {
-    @apply bg-white hover:bg-slate-50 text-slate-700 font-medium py-2 px-4 rounded-lg
-           border border-slate-200 transition-colors duration-150;
+    @apply bg-white dark:bg-zinc-900 hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-300 font-medium py-2 px-4 rounded-lg
+           border border-slate-200 dark:border-zinc-800 transition-colors duration-150;
   }
   .input {
-    @apply w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm
-           text-slate-900 placeholder-slate-400 focus:border-brand-500 focus:outline-none
+    @apply w-full rounded-lg border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-2 text-sm
+           text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:border-brand-500 focus:outline-none
            focus:ring-2 focus:ring-brand-500/20;
   }
 

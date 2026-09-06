@@ -1,7 +1,11 @@
-aydex.cloud, www.aydex.cloud {
-	reverse_proxy web:3000
+# apex/www intentionally NOT proxied here anymore — DNS for those now points
+# at Vercel, which hosts the web app directly. Caddy only fronts the pieces
+# that stay on this VPS: the tracker and (for Vercel's benefit) ClickHouse.
+
+{$TRACKER_DOMAIN} {
+	reverse_proxy tracker:3001
 }
 
-t.aydex.cloud {
-	reverse_proxy tracker:3001
+ch.{$APP_DOMAIN} {
+	reverse_proxy clickhouse:8123
 }

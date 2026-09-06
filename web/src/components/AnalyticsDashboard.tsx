@@ -11,9 +11,10 @@ import { SharePanel } from './SharePanel'
 import { CustomCharts } from './CustomCharts'
 import { DataStorageInfo } from './DataStorageInfo'
 import { EncryptionPanel } from './EncryptionPanel'
+import { GoalsPanel } from './GoalsPanel'
 
 type Period = 'today' | '7d' | '30d'
-type Tab = 'overview' | 'campaigns' | 'custom' | 'privacy' | 'encryption' | 'share'
+type Tab = 'overview' | 'campaigns' | 'goals' | 'custom' | 'privacy' | 'encryption' | 'share'
 
 interface AnalyticsData {
   totals:     { total_views: number; unique_visitors: number }
@@ -25,6 +26,8 @@ interface AnalyticsData {
   browsers:   Array<{ browser: string; views: number }>
   campaigns:  Array<{ source: string; medium: string; campaign: string; visits: number; visitors: number }>
   events:     Array<{ event_name: string; count: number; unique_visitors: number }>
+  countries:  Array<{ country: string; views: number }>
+  goals:      Array<{ id: string; name: string; type: string; matchValue: string; completions: number; conversionRate: number }>
 }
 
 interface Props {
@@ -44,6 +47,7 @@ const PERIODS: { key: Period; label: string }[] = [
 const TABS: { key: Tab; label: string }[] = [
   { key: 'overview',   label: 'Overview' },
   { key: 'campaigns',  label: 'Campaigns & Events' },
+  { key: 'goals',      label: 'Goals' },
   { key: 'custom',     label: 'Custom Charts' },
   { key: 'privacy',    label: 'Privacy & Data' },
   { key: 'encryption', label: 'Encryption' },
@@ -81,15 +85,15 @@ export function AnalyticsDashboard({ siteId, siteName, trackingId, isPublic, pub
     <div>
       {/* Tab bar */}
       <div className="flex items-center justify-between mb-1">
-        <div className="flex gap-1 border-b border-slate-200 w-full overflow-x-auto">
+        <div className="flex gap-1 border-b border-slate-200 dark:border-zinc-800 w-full overflow-x-auto">
           {TABS.map((t) => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${
                 tab === t.key
                   ? 'border-brand-600 text-brand-600'
-                  : 'border-transparent text-slate-500 hover:text-slate-900'
+                  : 'border-transparent text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100'
               }`}
             >
               {t.label}
@@ -112,13 +116,13 @@ export function AnalyticsDashboard({ siteId, siteName, trackingId, isPublic, pub
               </svg>
               Export CSV
             </button>
-            <div className="flex gap-1 bg-white border border-slate-200 rounded-lg p-1">
+            <div className="flex gap-1 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg p-1">
               {PERIODS.map((p) => (
                 <button
                   key={p.key}
                   onClick={() => setPeriod(p.key)}
                   className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                    period === p.key ? 'bg-brand-600 text-white' : 'text-slate-600 hover:text-slate-900'
+                    period === p.key ? 'bg-brand-600 text-white' : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100'
                   }`}
                 >
                   {p.label}
@@ -132,13 +136,13 @@ export function AnalyticsDashboard({ siteId, siteName, trackingId, isPublic, pub
       {/* Period selector for campaigns tab */}
       {tab === 'campaigns' && (
         <div className="flex justify-end mt-4 mb-6">
-          <div className="flex gap-1 bg-white border border-slate-200 rounded-lg p-1">
+          <div className="flex gap-1 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg p-1">
             {PERIODS.map((p) => (
               <button
                 key={p.key}
                 onClick={() => setPeriod(p.key)}
                 className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                  period === p.key ? 'bg-brand-600 text-white' : 'text-slate-600 hover:text-slate-900'
+                  period === p.key ? 'bg-brand-600 text-white' : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100'
                 }`}
               >
                 {p.label}
@@ -149,7 +153,7 @@ export function AnalyticsDashboard({ siteId, siteName, trackingId, isPublic, pub
       )}
 
       {error && (
-        <div className="card p-4 text-center text-red-600 text-sm mb-6">{error}</div>
+        <div className="card p-4 text-center text-red-600 dark:text-red-400 text-sm mb-6">{error}</div>
       )}
 
       {/* ── Overview tab ─────────────────────────────────── */}
@@ -157,9 +161,9 @@ export function AnalyticsDashboard({ siteId, siteName, trackingId, isPublic, pub
         loading ? (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              {[1, 2].map((i) => <div key={i} className="card p-6 h-28 animate-pulse bg-slate-100" />)}
+              {[1, 2].map((i) => <div key={i} className="card p-6 h-28 animate-pulse bg-slate-100 dark:bg-zinc-800" />)}
             </div>
-            <div className="card p-6 h-64 animate-pulse bg-slate-100" />
+            <div className="card p-6 h-64 animate-pulse bg-slate-100 dark:bg-zinc-800" />
           </div>
         ) : data ? (
           <div className="space-y-6">
@@ -182,6 +186,12 @@ export function AnalyticsDashboard({ siteId, siteName, trackingId, isPublic, pub
               <DeviceBreakdown title="Devices" data={data.devices.map((d) => ({ name: d.device_type, value: d.views }))} />
               <DeviceBreakdown title="Browsers" data={data.browsers.map((b) => ({ name: b.browser, value: b.views }))} />
             </div>
+            <TopList
+              title="Countries"
+              rows={data.countries.map((c) => ({ label: c.country, value: c.views }))}
+              total={data.totals.total_views}
+              emptyMsg="No country data yet — configure a GeoIP database on the tracker"
+            />
           </div>
         ) : null
       )}
@@ -190,11 +200,20 @@ export function AnalyticsDashboard({ siteId, siteName, trackingId, isPublic, pub
       {tab === 'campaigns' && (
         loading ? (
           <div className="space-y-4">
-            <div className="card p-6 h-48 animate-pulse bg-slate-100" />
-            <div className="card p-6 h-48 animate-pulse bg-slate-100" />
+            <div className="card p-6 h-48 animate-pulse bg-slate-100 dark:bg-zinc-800" />
+            <div className="card p-6 h-48 animate-pulse bg-slate-100 dark:bg-zinc-800" />
           </div>
         ) : data ? (
           <CampaignsTable campaigns={data.campaigns} events={data.events} />
+        ) : null
+      )}
+
+      {/* ── Goals tab ─────────────────────────────────────── */}
+      {tab === 'goals' && (
+        loading ? (
+          <div className="card p-6 h-48 animate-pulse bg-slate-100 dark:bg-zinc-800" />
+        ) : data ? (
+          <GoalsPanel siteId={siteId} goals={data.goals} onChange={fetchData} />
         ) : null
       )}
 

@@ -64,8 +64,8 @@ export function TrackingSnippet({ siteId, trackingId, trackerUrl, initialStorage
   return (
     <div className="card p-4 mb-6 space-y-4">
       <div>
-        <p className="text-sm font-medium text-slate-700 mb-1">📋 Tracking snippet — paste before &lt;/head&gt;</p>
-        <div className="mt-1 bg-slate-900 rounded-lg p-3 overflow-x-auto flex items-start justify-between gap-3">
+        <p className="text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1">📋 Tracking snippet — paste before &lt;/head&gt;</p>
+        <div className="mt-1 bg-slate-900 dark:bg-black rounded-lg p-3 overflow-x-auto flex items-start justify-between gap-3">
           <code className="text-green-400 text-xs font-mono whitespace-pre-wrap break-all">{snippet}</code>
           <button onClick={copySnippet} className="shrink-0 text-xs text-slate-300 hover:text-white">
             {copied ? '✓ Copied' : 'Copy'}
@@ -74,8 +74,8 @@ export function TrackingSnippet({ siteId, trackingId, trackerUrl, initialStorage
       </div>
 
       <div>
-        <label className="text-sm font-medium text-slate-700 block mb-1">
-          Persistent visitor ID storage {saving && <span className="text-xs text-slate-400">(saving…)</span>}
+        <label className="text-sm font-medium text-slate-700 dark:text-zinc-300 block mb-1">
+          Persistent visitor ID storage {saving && <span className="text-xs text-slate-400 dark:text-zinc-500">(saving…)</span>}
         </label>
         <select
           className="input"
@@ -84,22 +84,22 @@ export function TrackingSnippet({ siteId, trackingId, trackerUrl, initialStorage
         >
           {STORAGE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
-        <p className="text-xs text-slate-400 mt-1">
+        <p className="text-xs text-slate-400 dark:text-zinc-500 mt-1">
           Memory only means every visit looks like a new visitor (today&apos;s default). Choosing a persistent
           option recognizes repeat visitors across sessions, encrypted with the key below.
         </p>
       </div>
 
       {storageMode !== 'memory' && key && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2">
-          <p className="text-xs font-medium text-amber-800">
+        <div className="rounded-lg border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/40 p-3 space-y-2">
+          <p className="text-xs font-medium text-amber-800 dark:text-amber-400">
             🔑 Encryption key — save this now, we don&apos;t store it and can&apos;t show it again.
           </p>
           <div className="flex gap-2">
-            <input readOnly value={key} className="input flex-1 font-mono text-xs bg-white" />
+            <input readOnly value={key} className="input flex-1 font-mono text-xs bg-white dark:bg-zinc-900" />
             <button onClick={regenerateKey} className="btn-secondary text-xs shrink-0">Regenerate</button>
           </div>
-          <p className="text-xs text-amber-700">
+          <p className="text-xs text-amber-700 dark:text-amber-500">
             This key is embedded in your page&apos;s own source (in the snippet above) so a visitor&apos;s browser
             can decrypt their own ID on their next visit. It protects the stored value from other scripts on your
             page reading it — it isn&apos;t a secret from your own site&apos;s visitors, who can view page source.

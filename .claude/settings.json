@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(chmod +x /home/ayush/Developments/aydexCloud/scripts/update-geoip.sh)",
+      "Bash(DATABASE_URL=\"postgresql://aydex:aydex@localhost:5432/aydex\" npx prisma validate)",
+      "Bash(DATABASE_URL=\"postgresql://aydex:aydex@localhost:5432/aydex\" npx prisma generate)",
+      "Bash(node -e \"console.log\\(require\\('./node_modules/stripe/package.json'\\).version\\)\")",
+      "Bash(C-c)",
+      "Bash(DATABASE_URL=\"postgresql://aydex:aydex@localhost:5432/aydex\" npm run lint)",
+      "Bash(DATABASE_URL=postgresql://aydex:aydex@localhost:5432/aydex CLICKHOUSE_HOST=http://localhost:8123 CLICKHOUSE_DB=analytics NEXTAUTH_SECRET=test-secret-test-secret-test-secret NEXTAUTH_URL=http://localhost:3000 NEXT_PUBLIC_TRACKER_URL=http://localhost:3001 REDIS_URL=redis://localhost:6379 npm run build)",
+      "Bash(go mod *)",
+      "Bash(docker build *)",
+      "Bash(sudo chown ayush:ayush /home/ayush/Developments/aydexCloud/tracker/go.sum)",
+      "Bash(chown ayush:ayush /home/ayush/Developments/aydexCloud/tracker/go.sum)",
+      "Bash(docker rmi *)",
+      "Bash(curl -sS http://127.0.0.1:3051/health)",
+      "Bash(curl -sS -X POST http://127.0.0.1:3050/api/auth/register -H 'Content-Type: application/json' -d '{\"name\":\"Test User\",\"email\":\"test-verify@example.com\",\"password\":\"testpass123\"}')",
+      "Bash(curl -sS -b cookies.txt http://127.0.0.1:3050/api/sites -X POST -H \"Content-Type: application/json\" -d '{\"name\":\"Site One\",\"domain\":\"example.com\"}')",
+      "Bash(curl -sS -b cookies.txt http://127.0.0.1:3050/api/sites -X POST -H \"Content-Type: application/json\" -d '{\"name\":\"Site Two\",\"domain\":\"example2.com\"}')",
+      "Bash(curl -sS -o /dev/null -w \"%{http_code} %{content_type}\\\\n\" \"http://127.0.0.1:3051/collect?s=0bb0e54eddfca55f&p=%2F&r=&w=1920\")",
+      "Bash(curl -sS -b cookies2.txt \"http://127.0.0.1:3050/api/analytics/cmtos0eej000213hlf823auvw/live\")",
+      "Bash(curl -sS -b cookies3.txt \"http://127.0.0.1:3050/api/analytics/cmtos5j7m0002e3a8myrxp2r6?period=7d\")",
+      "Bash(python3 -c ' *)",
+      "Bash(curl -sS -b cookies3.txt http://127.0.0.1:3050/api/goals/cmtos5j7m0002e3a8myrxp2r6 -X POST -H 'Content-Type: application/json' -d '{\"name\":\"Test Page Visit\",\"type\":\"pageview\",\"matchValue\":\"/test41\"}')",
+      "Bash(curl -sS -w \"\\\\nHTTP %{http_code}\\\\n\" -X POST \"http://127.0.0.1:3050/api/cron/weekly-digest\")",
+      "Bash(curl -sS -w \"\\\\nHTTP %{http_code}\\\\n\" -X POST -H \"Authorization: Bearer anything\" \"http://127.0.0.1:3050/api/cron/weekly-digest\")",
+      "Bash(DATABASE_URL=\"postgresql://aydex:aydex@localhost:5432/aydex\" npm run typecheck)",
+      "Bash(xargs -I{} echo {})",
+      "Bash(tee /dev/stderr)",
+      "Bash(curl -sS -w \"\\\\nHTTP %{http_code}\\\\n\" -b ui_cookies.txt \"http://127.0.0.1:3050/dashboard\" -o dashboard.html)",
+      "Bash(curl -sS -b ui_cookies.txt http://127.0.0.1:3050/api/sites -X POST -H 'Content-Type: application/json' -d '{\"name\":\"UI Test Site\",\"domain\":\"uitest.com\"}')",
+      "Bash(curl -sS -b ui_cookies.txt \"http://127.0.0.1:3050/dashboard\" -o dashboard.html)"
+    ]
+  }
+}

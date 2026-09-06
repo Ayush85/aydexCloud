@@ -1,12 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { signIn } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
-export default function SignUpPage() {
+export const dynamic = 'force-dynamic'
+
+function SignUpForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const plan = searchParams.get('plan')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -32,6 +36,24 @@ export default function SignUpPage() {
     }
 
     await signIn('credentials', { email, password, redirect: false })
+
+    if (plan && ['starter', 'pro', 'agency'].includes(plan)) {
+      try {
+        const checkoutRes = await fetch('/api/billing/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ plan: plan.toUpperCase() }),
+        })
+        const checkout = await checkoutRes.json()
+        if (checkoutRes.ok && checkout.url) {
+          window.location.href = checkout.url
+          return
+        }
+      } catch {
+        // fall through to dashboard — billing may not be configured yet
+      }
+    }
+
     router.push('/dashboard')
   }
 
@@ -98,5 +120,13 @@ export default function SignUpPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignUpForm />
+    </Suspense>
   )
 }

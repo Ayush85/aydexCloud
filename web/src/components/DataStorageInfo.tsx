@@ -18,16 +18,16 @@ export function DataStorageInfo() {
   return (
     <div className="mt-4 space-y-6">
       <div className="card p-5">
-        <h3 className="font-semibold text-slate-900 mb-1">What we collect</h3>
-        <p className="text-sm text-slate-500 mb-4">
+        <h3 className="font-semibold text-slate-900 dark:text-zinc-100 mb-1">What we collect</h3>
+        <p className="text-sm text-slate-500 dark:text-zinc-400 mb-4">
           Every request to the tracking script sends exactly this, and nothing more:
         </p>
         <table className="w-full text-sm">
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-slate-100 dark:divide-zinc-800">
             {COLLECTED.map((c) => (
               <tr key={c.field}>
-                <td className="py-2.5 pr-4 font-medium text-slate-800 whitespace-nowrap align-top">{c.field}</td>
-                <td className="py-2.5 text-slate-500">{c.desc}</td>
+                <td className="py-2.5 pr-4 font-medium text-slate-800 dark:text-zinc-200 whitespace-nowrap align-top">{c.field}</td>
+                <td className="py-2.5 text-slate-500 dark:text-zinc-400">{c.desc}</td>
               </tr>
             ))}
           </tbody>
@@ -35,13 +35,13 @@ export function DataStorageInfo() {
       </div>
 
       <div className="card p-5">
-        <h3 className="font-semibold text-slate-900 mb-1">What we never use — by default</h3>
-        <p className="text-sm text-slate-500 mb-4">
+        <h3 className="font-semibold text-slate-900 dark:text-zinc-100 mb-1">What we never use — by default</h3>
+        <p className="text-sm text-slate-500 dark:text-zinc-400 mb-4">
           The tracking script is a stateless image beacon by default — it never touches browser storage.
         </p>
         <div className="flex flex-wrap gap-2">
           {NOT_USED.map((n) => (
-            <span key={n} className="inline-flex items-center gap-1.5 text-sm bg-green-50 text-green-700 px-3 py-1.5 rounded-lg">
+            <span key={n} className="inline-flex items-center gap-1.5 text-sm bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-400 px-3 py-1.5 rounded-lg">
               ✓ No {n}
             </span>
           ))}
@@ -49,12 +49,12 @@ export function DataStorageInfo() {
       </div>
 
       <div className="card p-5">
-        <h3 className="font-semibold text-slate-900 mb-1">Optional: persistent visitor recognition</h3>
-        <p className="text-sm text-slate-500">
+        <h3 className="font-semibold text-slate-900 dark:text-zinc-100 mb-1">Optional: persistent visitor recognition</h3>
+        <p className="text-sm text-slate-500 dark:text-zinc-400">
           In the tracking snippet settings, you can opt into recognizing repeat visitors across sessions instead of
           the default daily-rotating hash. If you do, a random anonymous ID (no PII) is stored in{' '}
-          <code className="bg-slate-100 px-1 rounded">sessionStorage</code> or{' '}
-          <code className="bg-slate-100 px-1 rounded">localStorage</code> — your choice — and encrypted there with
+          <code className="bg-slate-100 dark:bg-zinc-800 px-1 rounded">sessionStorage</code> or{' '}
+          <code className="bg-slate-100 dark:bg-zinc-800 px-1 rounded">localStorage</code> — your choice — and encrypted there with
           an auto-generated key shown to you once. aydex&apos;s server still only ever receives a one-way hash of
           that ID, never the raw value or the key. That key lives in your own page&apos;s source (so a visitor&apos;s
           browser can decrypt their own ID on their next visit), so it protects the stored value from other scripts
@@ -64,39 +64,39 @@ export function DataStorageInfo() {
       </div>
 
       <div className="card p-5">
-        <h3 className="font-semibold text-slate-900 mb-1">How visitors are identified</h3>
-        <p className="text-sm text-slate-500">
+        <h3 className="font-semibold text-slate-900 dark:text-zinc-100 mb-1">How visitors are identified</h3>
+        <p className="text-sm text-slate-500 dark:text-zinc-400">
           We combine your site ID, today&apos;s date, the visitor&apos;s IP address, and their raw browser
-          user-agent string, then SHA-256 hash the result into a <code className="bg-slate-100 px-1 rounded">visitor_hash</code>.
+          user-agent string, then SHA-256 hash the result into a <code className="bg-slate-100 dark:bg-zinc-800 px-1 rounded">visitor_hash</code>.
           This hash rotates every day, so the same visitor gets a different hash tomorrow. The raw IP address
           and user-agent are used only for this one calculation and are never written to any database or log.
         </p>
       </div>
 
       <div className="card p-5">
-        <h3 className="font-semibold text-slate-900 mb-1">Where it&apos;s stored</h3>
+        <h3 className="font-semibold text-slate-900 dark:text-zinc-100 mb-1">Where it&apos;s stored</h3>
         <table className="w-full text-sm">
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-slate-100 dark:divide-zinc-800">
             {WHERE_STORED.map((w) => (
               <tr key={w.store}>
-                <td className="py-2.5 pr-4 font-medium text-slate-800 whitespace-nowrap align-top">{w.store}</td>
-                <td className="py-2.5 text-slate-500">{w.detail}</td>
+                <td className="py-2.5 pr-4 font-medium text-slate-800 dark:text-zinc-200 whitespace-nowrap align-top">{w.store}</td>
+                <td className="py-2.5 text-slate-500 dark:text-zinc-400">{w.detail}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      <div className="card p-5 bg-brand-50/40">
-        <h3 className="font-semibold text-slate-900 mb-1">Encrypting your own custom event data</h3>
-        <p className="text-sm text-slate-500">
+      <div className="card p-5 bg-brand-50/40 dark:bg-brand-500/10">
+        <h3 className="font-semibold text-slate-900 dark:text-zinc-100 mb-1">Encrypting your own custom event data</h3>
+        <p className="text-sm text-slate-500 dark:text-zinc-400">
           If you encrypt custom event properties client-side (see the <span className="font-medium">Encryption</span> tab),
-          the values stored in <code className="bg-slate-100 px-1 rounded">event_props</code> above are ciphertext —
+          the values stored in <code className="bg-slate-100 dark:bg-zinc-800 px-1 rounded">event_props</code> above are ciphertext —
           even aydex&apos;s own server and database never see the plaintext or your key.
         </p>
       </div>
 
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-slate-400 dark:text-zinc-500">
         Feel free to copy this page into your own privacy policy — it reflects exactly what the tracker sends and stores today.
       </p>
     </div>

@@ -14,9 +14,9 @@ export function DeviceBreakdown({ title, data }: Props) {
 
   return (
     <div className="card p-5">
-      <h3 className="text-sm font-medium text-slate-700 mb-3">{title}</h3>
+      <h3 className="text-sm font-medium text-slate-700 dark:text-zinc-300 mb-3">{title}</h3>
       {data.length === 0 ? (
-        <p className="text-slate-400 text-sm py-4 text-center">No data yet</p>
+        <p className="text-slate-400 dark:text-zinc-500 text-sm py-4 text-center">No data yet</p>
       ) : (
         <div className="flex gap-4 items-center">
           <ResponsiveContainer width={120} height={120}>
@@ -35,7 +35,7 @@ export function DeviceBreakdown({ title, data }: Props) {
                 ))}
               </Pie>
               <Tooltip
-                contentStyle={{ border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 12 }}
+                contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'inherit' }}
                 formatter={(v: number) => [`${v} (${Math.round((v / total) * 100)}%)`, '']}
               />
             </PieChart>
@@ -43,14 +43,14 @@ export function DeviceBreakdown({ title, data }: Props) {
           <ul className="flex-1 space-y-1">
             {data.map((d, i) => (
               <li key={i} className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-2 text-slate-600">
+                <span className="flex items-center gap-2 text-slate-600 dark:text-zinc-400">
                   <span
                     className="w-2.5 h-2.5 rounded-full inline-block"
                     style={{ backgroundColor: COLORS[i % COLORS.length] }}
                   />
                   <span className="capitalize">{d.name || 'Unknown'}</span>
                 </span>
-                <span className="text-slate-500 tabular-nums">
+                <span className="text-slate-500 dark:text-zinc-400 tabular-nums">
                   {Math.round((d.value / total) * 100)}%
                 </span>
               </li>

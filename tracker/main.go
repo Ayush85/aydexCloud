@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"crypto/sha256"
+	"crypto/tls"
 	"encoding/hex"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -13,9 +15,16 @@ import (
 	"time"
 
 	clickhouse "github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/getsentry/sentry-go"
 	"github.com/mileusna/useragent"
+	"github.com/oschwald/geoip2-golang"
 	"github.com/redis/go-redis/v9"
 )
+
+// Requests from a single IP+site over this many events per minute are logged
+// but not written to ClickHouse — the pixel still returns so a hammered
+// customer site never visibly breaks.
+const rateLimitPerMinute = 300
 
 var pixel = []byte{
 	0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x01, 0x00,
@@ -98,18 +107,45 @@ const trackingScript = `(function(){
 })();`
 
 var (
-	db  clickhouse.Conn
-	rdb *redis.Client
+	db        clickhouse.Conn
+	rdb       *redis.Client
+	geoReader *geoip2.Reader
 )
 
 func main() {
+	if dsn := os.Getenv("SENTRY_DSN"); dsn != "" {
+		if err := sentry.Init(sentry.ClientOptions{Dsn: dsn}); err != nil {
+			log.Printf("Sentry init failed: %v", err)
+		} else {
+			defer sentry.Flush(2 * time.Second)
+			log.Println("Sentry enabled")
+		}
+	}
+
+	if reader, err := geoip2.Open(getEnv("GEOIP_DB_PATH", "/data/GeoLite2-Country.mmdb")); err != nil {
+		log.Printf("GeoIP database unavailable (country data disabled): %v", err)
+	} else {
+		geoReader = reader
+		log.Println("Loaded GeoIP database")
+	}
+
 	chAddr := getEnv("CLICKHOUSE_ADDR", "localhost:9000")
+
+	var chTLS *tls.Config
+	if getEnv("CLICKHOUSE_TLS", "false") == "true" {
+		chTLS = &tls.Config{}
+	}
 
 	var err error
 	for i := 0; i < 40; i++ {
 		db, err = clickhouse.Open(&clickhouse.Options{
-			Addr:            []string{chAddr},
-			Auth:            clickhouse.Auth{Database: "analytics", Username: "default"},
+			Addr: []string{chAddr},
+			Auth: clickhouse.Auth{
+				Database: getEnv("CLICKHOUSE_DB", "analytics"),
+				Username: getEnv("CLICKHOUSE_USER", "default"),
+				Password: getEnv("CLICKHOUSE_PASSWORD", ""),
+			},
+			TLS:             chTLS,
 			DialTimeout:     5 * time.Second,
 			MaxOpenConns:    20,
 			MaxIdleConns:    5,
@@ -134,11 +170,15 @@ func main() {
 		log.Fatalf("Table creation failed: %v", err)
 	}
 
-	// Redis — non-fatal if unavailable (live tracking degrades gracefully)
-	rdb = redis.NewClient(&redis.Options{
-		Addr:        getEnv("REDIS_ADDR", "localhost:6379"),
-		DialTimeout: 3 * time.Second,
-	})
+	// Redis — non-fatal if unavailable (live tracking degrades gracefully).
+	// ParseURL (not a bare host:port) so a managed provider's rediss://
+	// connection string carries its password and TLS config automatically.
+	redisOpts, err := redis.ParseURL(getEnv("REDIS_URL", "redis://localhost:6379"))
+	if err != nil {
+		log.Fatalf("Invalid REDIS_URL: %v", err)
+	}
+	redisOpts.DialTimeout = 3 * time.Second
+	rdb = redis.NewClient(redisOpts)
 	if err := rdb.Ping(context.Background()).Err(); err != nil {
 		log.Printf("Redis unavailable (live tracking disabled): %v", err)
 		rdb = nil
@@ -157,7 +197,8 @@ func main() {
 }
 
 func ensureTable() error {
-	return db.Exec(context.Background(), `
+	ctx := context.Background()
+	if err := db.Exec(ctx, `
 		CREATE TABLE IF NOT EXISTS analytics.pageviews
 		(
 			site_id      String,
@@ -176,7 +217,20 @@ func ensureTable() error {
 		ORDER BY (site_id, timestamp)
 		TTL timestamp + INTERVAL 2 YEAR
 		SETTINGS index_granularity = 8192
-	`)
+	`); err != nil {
+		return err
+	}
+	// Idempotent migration for installs created before country tracking existed.
+	return db.Exec(ctx, `ALTER TABLE analytics.pageviews ADD COLUMN IF NOT EXISTS country LowCardinality(String) DEFAULT ''`)
+}
+
+// shouldDrop reports whether a counter has exceeded its limit. A negative
+// limit means unlimited (used for plans with no pageview cap).
+func shouldDrop(count, limit int64) bool {
+	if limit < 0 {
+		return false
+	}
+	return count > limit
 }
 
 func handleHealth(w http.ResponseWriter, r *http.Request) {
@@ -235,6 +289,8 @@ func handleCollect(w http.ResponseWriter, r *http.Request) {
 		deviceType = "tablet"
 	}
 
+	ip := realIP(r)
+
 	// If the tracking snippet sent a persistent client-side visitor id (opt-in via
 	// data-storage on the snippet), hash that instead — stable across days for the
 	// same visitor. Otherwise fall back to the default daily-rotating IP+UA hash.
@@ -243,36 +299,83 @@ func handleCollect(w http.ResponseWriter, r *http.Request) {
 		sum := sha256.Sum256([]byte(siteID + vid))
 		visitorHash = hex.EncodeToString(sum[:16])
 	} else {
-		ip := realIP(r)
 		today := time.Now().UTC().Format("2006-01-02")
 		sum := sha256.Sum256([]byte(siteID + today + ip + rawUA))
 		visitorHash = hex.EncodeToString(sum[:16])
 	}
 
+	country := ""
+	if geoReader != nil {
+		if parsed := net.ParseIP(ip); parsed != nil {
+			if record, err := geoReader.Country(parsed); err == nil {
+				country = record.Country.IsoCode
+			}
+		}
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	if err := db.Exec(ctx,
-		`INSERT INTO analytics.pageviews
-		 (site_id, timestamp, url, referrer, browser, os, device_type, visitor_hash, event_name, event_props)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		siteID, time.Now().UTC(), pageURL, referrer,
-		browser, osName, deviceType, visitorHash, eventName, eventProps,
-	); err != nil {
-		log.Printf("CH insert error: %v", err)
+	now := time.Now()
+	drop := false
+
+	// Rate limiting + monthly quota + live-visitor tracking, all in one Redis
+	// round trip. Fails open (never drops writes) if Redis is unavailable —
+	// same graceful-degradation philosophy as the rest of this service.
+	if rdb != nil {
+		minuteKey := "ratelimit:" + ip + ":" + siteID + ":" + now.Format("200601021504")
+		monthKey := "quota:used:" + siteID + ":" + now.Format("200601")
+		limitKey := "quota:limit:" + siteID
+
+		pipe := rdb.Pipeline()
+		rateCmd := pipe.Incr(ctx, minuteKey)
+		pipe.Expire(ctx, minuteKey, 65*time.Second)
+		quotaCmd := pipe.Incr(ctx, monthKey)
+		pipe.Expire(ctx, monthKey, 35*24*time.Hour)
+		limitCmd := pipe.Get(ctx, limitKey)
+		pipe.ZAdd(ctx, "live:"+siteID, redis.Z{Score: float64(now.Unix()), Member: visitorHash})
+		pipe.ZRemRangeByScore(ctx, "live:"+siteID, "-inf",
+			strconv.FormatInt(now.Add(-10*time.Minute).Unix(), 10))
+		pipe.Expire(ctx, "live:"+siteID, 15*time.Minute)
+		if _, err := pipe.Exec(ctx); err != nil && err != redis.Nil {
+			log.Printf("Redis pipeline error: %v", err)
+			captureError(err)
+		} else {
+			if shouldDrop(rateCmd.Val(), rateLimitPerMinute) {
+				drop = true
+			}
+			// Missing limit key = no plan synced yet; default to the Free tier cap.
+			limit := int64(10_000)
+			if limitStr, err := limitCmd.Result(); err == nil {
+				if parsed, err := strconv.ParseInt(limitStr, 10, 64); err == nil {
+					limit = parsed
+				}
+			}
+			if shouldDrop(quotaCmd.Val(), limit) {
+				drop = true
+			}
+		}
 	}
 
-	// Track live visitor in Redis (sorted set, 10-min TTL per key)
-	if rdb != nil {
-		now := time.Now().Unix()
-		pipe := rdb.Pipeline()
-		pipe.ZAdd(ctx, "live:"+siteID, redis.Z{Score: float64(now), Member: visitorHash})
-		pipe.ZRemRangeByScore(ctx, "live:"+siteID, "-inf",
-			strconv.FormatInt(time.Now().Add(-10*time.Minute).Unix(), 10))
-		pipe.Expire(ctx, "live:"+siteID, 15*time.Minute)
-		if _, err := pipe.Exec(ctx); err != nil {
-			log.Printf("Redis pipeline error: %v", err)
-		}
+	if drop {
+		return
+	}
+
+	if err := db.Exec(ctx,
+		`INSERT INTO analytics.pageviews
+		 (site_id, timestamp, url, referrer, browser, os, device_type, visitor_hash, event_name, event_props, country)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		siteID, now.UTC(), pageURL, referrer,
+		browser, osName, deviceType, visitorHash, eventName, eventProps, country,
+	); err != nil {
+		log.Printf("CH insert error: %v", err)
+		captureError(err)
+	}
+}
+
+func captureError(err error) {
+	if sentry.CurrentHub().Client() != nil {
+		sentry.CaptureException(err)
 	}
 }
 

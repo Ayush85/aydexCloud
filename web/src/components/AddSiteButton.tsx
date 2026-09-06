@@ -44,15 +44,15 @@ export function AddSiteButton() {
       {open && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
           <div className="card w-full max-w-md p-6">
-            <h2 className="text-lg font-semibold text-slate-900 mb-4">Add a new website</h2>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100 mb-4">Add a new website</h2>
             <form onSubmit={handleAdd} className="space-y-4">
               {error && (
-                <div className="bg-red-50 text-red-700 text-sm px-3 py-2 rounded-lg">
+                <div className="bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 text-sm px-3 py-2 rounded-lg">
                   {error}
                 </div>
               )}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1">
                   Website name
                 </label>
                 <input
@@ -65,7 +65,7 @@ export function AddSiteButton() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1">
                   Domain
                 </label>
                 <input
@@ -75,7 +75,7 @@ export function AddSiteButton() {
                   onChange={(e) => setDomain(e.target.value)}
                   required
                 />
-                <p className="text-xs text-slate-400 mt-1">Without https:// or trailing slash</p>
+                <p className="text-xs text-slate-400 dark:text-zinc-500 mt-1">Without https:// or trailing slash</p>
               </div>
               <div className="flex gap-3 pt-1">
                 <button type="submit" className="btn-primary flex-1" disabled={loading}>
