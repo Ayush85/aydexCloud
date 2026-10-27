@@ -1,10 +1,12 @@
 #!/bin/sh
-# Usage: ./scripts/gen-env.sh app.example.com t.example.com > .env
-# Generates a self-hosted .env with fresh secrets. Refuses to overwrite .env.
+# Usage: ./scripts/gen-env.sh app.example.com t.example.com
+# Writes ./.env (mode 600) with fresh secrets. Refuses to overwrite an existing .env.
 set -e
-[ $# -eq 2 ] || { echo "usage: $0 APP_DOMAIN TRACKER_DOMAIN > .env" >&2; exit 1; }
+[ $# -eq 2 ] || { echo "usage: $0 APP_DOMAIN TRACKER_DOMAIN" >&2; exit 1; }
 [ ! -e .env ] || { echo ".env already exists, refusing" >&2; exit 1; }
 APP=$1; TRK=$2
+umask 077
+exec > .env
 r() { openssl rand -hex 24; }
 PG=$(r); CH=$(r); RD=$(r)
 cat <<ENV
