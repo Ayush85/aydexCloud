@@ -118,7 +118,10 @@ services:
     networks:
       - aydex
 
+  # Optional: only started with `--profile caddy`. Skip it when the host
+  # already runs nginx on 80/443 (see deploy/nginx/aydex.cloud.conf).
   caddy:
+    profiles: ["caddy"]
     image: caddy:2-alpine
     restart: unless-stopped
     environment:
