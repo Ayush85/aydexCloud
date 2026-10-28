@@ -537,6 +537,7 @@ export default function LandingPage() {
           <div className="flex gap-6 text-sm text-zinc-500">
             <a href="#features" className="hover:text-zinc-300 transition-colors">Features</a>
             <a href="#pricing"  className="hover:text-zinc-300 transition-colors">Pricing</a>
+            <Link href="/privacy-proof" className="hover:text-zinc-300 transition-colors">Privacy proof</Link>
             <Link href="/auth/signup" className="hover:text-zinc-300 transition-colors">Sign up</Link>
           </div>
           <p className="text-xs text-zinc-600">© 2026 Aydex. Privacy-first analytics. Built by Ayush.</p>
