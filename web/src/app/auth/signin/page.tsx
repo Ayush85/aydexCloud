@@ -26,7 +26,10 @@ export default function SignInPage() {
 
     setLoading(false)
     if (res?.ok) {
-      router.push('/dashboard')
+      const cb = new URLSearchParams(window.location.search).get('callbackUrl') || ''
+      // Same-site relative paths only, so this cannot be used as an open redirect.
+      router.replace(cb.startsWith('/') && !cb.startsWith('//') && !cb.startsWith('/\\') ? cb : '/dashboard')
+      router.refresh()
     } else {
       setError('Invalid email or password.')
     }

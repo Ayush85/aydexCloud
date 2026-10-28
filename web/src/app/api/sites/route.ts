@@ -1,3 +1,4 @@
+import { cleanStr, cleanDomain } from '@/lib/security'
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -28,9 +29,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { name, domain } = await req.json()
-  if (!name || !domain) {
+  const b = (await req.json().catch(() => null)) as { name?: unknown; domain?: unknown } | null
+  const name = cleanStr(b?.name, 1, 100)
+  const cleanDom = cleanDomain(b?.domain)
+  if (!name || !b?.domain) {
     return NextResponse.json({ error: 'Name and domain are required.' }, { status: 400 })
+  }
+  if (!cleanDom) {
+    return NextResponse.json({ error: 'Enter a valid domain, like example.com.' }, { status: 400 })
   }
 
   const user = await prisma.user.findUnique({ where: { id: session.user.id } })
@@ -43,19 +49,13 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const cleanDomain = domain
-    .toLowerCase()
-    .replace(/^https?:\/\//, '')
-    .replace(/\/.*$/, '')
-    .trim()
-
   const trackingId = randomBytes(8).toString('hex')
 
   const site = await prisma.site.create({
     data: {
       userId: session.user.id,
       name,
-      domain: cleanDomain,
+      domain: cleanDom,
       trackingId,
     },
   })

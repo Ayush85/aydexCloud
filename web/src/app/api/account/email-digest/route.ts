@@ -11,10 +11,12 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { enabled } = await req.json()
+  const body = (await req.json().catch(() => null)) as { enabled?: unknown } | null
+  if (typeof body?.enabled !== 'boolean') return NextResponse.json({ error: 'enabled must be true or false.' }, { status: 400 })
+  const enabled = body.enabled
   await prisma.user.update({
     where: { id: session.user.id },
-    data: { emailDigestEnabled: Boolean(enabled) },
+    data: { emailDigestEnabled: enabled },
   })
 
   return NextResponse.json({ ok: true })

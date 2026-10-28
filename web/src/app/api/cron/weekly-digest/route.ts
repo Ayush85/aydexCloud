@@ -1,3 +1,4 @@
+import { validCronAuth } from '@/lib/security'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getInsights } from '@/lib/reports'
@@ -20,8 +21,7 @@ export async function POST(req: NextRequest) {
 
 async function handleWeeklyDigest(req: NextRequest) {
   const secret = process.env.CRON_SECRET
-  const header = req.headers.get('authorization') ?? ''
-  if (!secret || header !== `Bearer ${secret}`) {
+  if (!validCronAuth(req.headers.get('authorization'), secret)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

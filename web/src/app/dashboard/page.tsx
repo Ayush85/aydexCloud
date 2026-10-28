@@ -54,7 +54,7 @@ export default async function DashboardPage() {
     const rows = await rs.json<{ site_id: string; day: string; views: number }>()
     for (const row of rows) {
       if (!dailyBySite.has(row.site_id)) dailyBySite.set(row.site_id, new Map())
-      dailyBySite.get(row.site_id)!.set(row.day, row.views)
+      dailyBySite.get(row.site_id)!.set(row.day, Number(row.views))
       totalViews7d += Number(row.views)
     }
   }

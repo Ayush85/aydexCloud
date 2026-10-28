@@ -24,7 +24,8 @@ export async function PATCH(
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
-  const body = await req.json()
+  const body = (await req.json().catch(() => null)) as Record<string, unknown> | null
+  if (!body || typeof body !== 'object') return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 })
   const data: {
     isPublic?: boolean; publicToken?: string; storageMode?: string
     alertsEnabled?: boolean; webhookUrl?: string | null

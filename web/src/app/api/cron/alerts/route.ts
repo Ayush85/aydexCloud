@@ -6,6 +6,7 @@ import { detectAlert, alertText } from '@/lib/alerts'
 import { sendAlertEmail } from '@/lib/email'
 import { postWebhook } from '@/lib/webhook'
 import { SITE_URL } from '@/lib/site'
+import { validCronAuth } from '@/lib/security'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,7 +16,7 @@ export async function POST(req: NextRequest) { return handle(req) }
 
 async function handle(req: NextRequest) {
   const secret = process.env.CRON_SECRET
-  if (!secret || (req.headers.get('authorization') ?? '') !== `Bearer ${secret}`) {
+  if (!validCronAuth(req.headers.get('authorization'), secret)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
