@@ -75,9 +75,13 @@ export async function POST(req: NextRequest, { params }: { params: { siteId: str
 export async function DELETE(_req: NextRequest, { params }: { params: { siteId: string } }) {
   const r = await ownedSite(params.siteId)
   if (r.error) return r.error
+  // Mutations don't reliably accept bound parameters, so inline the id — but only
+  // after proving it is the 16-hex string we generated at site creation.
+  if (!/^[a-f0-9]{16}$/.test(r.site.trackingId)) {
+    return NextResponse.json({ error: 'Unexpected tracking id format' }, { status: 500 })
+  }
   await ch.command({
-    query: `ALTER TABLE analytics.imported_daily DELETE WHERE site_id = {sid:String}`,
-    query_params: { sid: r.site.trackingId },
+    query: `ALTER TABLE analytics.imported_daily DELETE WHERE site_id = '${r.site.trackingId}'`,
   })
   return new NextResponse(null, { status: 204 })
 }
