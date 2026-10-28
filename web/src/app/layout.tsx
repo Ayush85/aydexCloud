@@ -2,12 +2,20 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { Providers } from './providers'
+import { SITE_URL, SITE_NAME, SITE_TAGLINE, SITE_DESCRIPTION } from '@/lib/site'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: { default: 'aydex.cloud — Privacy-first analytics', template: '%s · aydex.cloud' },
-  description: 'GDPR-compliant web analytics. No cookies. No consent banners. Just clean data.',
+  metadataBase: new URL(SITE_URL),
+  title: { default: `${SITE_NAME} — ${SITE_TAGLINE}`, template: `%s · ${SITE_NAME}` },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  keywords: ['privacy-first analytics', 'cookieless analytics', 'Google Analytics alternative', 'GDPR analytics', 'website analytics', 'no cookie banner', 'self-hosted analytics'],
+  alternates: { canonical: '/' },
+  openGraph: { type: 'website', url: '/', siteName: SITE_NAME, title: `${SITE_NAME} — ${SITE_TAGLINE}`, description: SITE_DESCRIPTION, locale: 'en_US' },
+  twitter: { card: 'summary_large_image', title: `${SITE_NAME} — ${SITE_TAGLINE}`, description: SITE_DESCRIPTION },
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 } },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
