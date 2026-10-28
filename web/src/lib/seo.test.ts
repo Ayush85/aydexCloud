@@ -42,3 +42,31 @@ describe('seo', () => {
     expect(r.sitemap).toMatch(/sitemap\.xml$/)
   })
 })
+
+import { llmsTxt, llmsFullTxt } from './llms'
+import { PLANS } from './plans'
+
+describe('geo / llms.txt', () => {
+  it('llms.txt is valid llms-style markdown linking the key pages', () => {
+    const t = llmsTxt()
+    expect(t.startsWith('# aydex.cloud\n')).toBe(true)
+    expect(t).toMatch(/^> .+/m)
+    expect(t).toContain('/about')
+    COMPARISONS.forEach((c) => expect(t).toContain(`/vs/${c.slug}`))
+    expect(t).not.toMatch(/dashboard|\/api\//)
+  })
+
+  it('llms-full.txt carries current pricing, all FAQs and comparisons', () => {
+    const t = llmsFullTxt()
+    Object.values(PLANS).forEach((p) => expect(t).toContain(`| ${p.label} |`))
+    FAQS.forEach((f) => expect(t).toContain(f.q))
+    COMPARISONS.forEach((c) => expect(t).toContain(`vs ${c.name}`))
+  })
+
+  it('robots explicitly allows AI crawlers and still blocks private areas for them', () => {
+    const rules = robots().rules as { userAgent: string | string[]; allow?: string; disallow?: string[] }[]
+    const ai = rules.find((r) => Array.isArray(r.userAgent))!
+    expect(ai.userAgent).toEqual(expect.arrayContaining(['GPTBot', 'OAI-SearchBot', 'PerplexityBot', 'ClaudeBot', 'Google-Extended']))
+    expect(ai.disallow).toEqual(expect.arrayContaining(['/dashboard', '/api/']))
+  })
+})

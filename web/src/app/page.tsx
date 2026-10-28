@@ -595,6 +595,7 @@ export default function LandingPage() {
           <div className="flex gap-6 text-sm text-zinc-500">
             <a href="#features" className="hover:text-zinc-300 transition-colors">Features</a>
             <a href="#pricing"  className="hover:text-zinc-300 transition-colors">Pricing</a>
+            <Link href="/about" className="hover:text-zinc-300 transition-colors">About</Link>
             <Link href="/vs/google-analytics" className="hover:text-zinc-300 transition-colors">vs Google Analytics</Link>
             <Link href="/vs/microsoft-clarity" className="hover:text-zinc-300 transition-colors">vs Clarity</Link>
             <Link href="/privacy-proof" className="hover:text-zinc-300 transition-colors">Privacy proof</Link>

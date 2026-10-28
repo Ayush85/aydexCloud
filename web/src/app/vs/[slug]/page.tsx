@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { COMPARISONS, bySlug } from '@/lib/comparisons'
-import { SITE_URL, SITE_NAME } from '@/lib/site'
+import { SITE_URL, SITE_NAME, CONTENT_UPDATED } from '@/lib/site'
 import { JsonLd } from '@/components/JsonLd'
 import { Logo } from '@/components/Logo'
 
@@ -36,6 +36,16 @@ export default function ComparisonPage({ params }: { params: { slug: string } })
     },
     {
       '@context': 'https://schema.org',
+      '@type': 'Article',
+      headline: c.title,
+      description: c.description,
+      mainEntityOfPage: url,
+      dateModified: CONTENT_UPDATED,
+      author: { '@type': 'Organization', name: SITE_NAME, url: SITE_URL },
+      publisher: { '@type': 'Organization', name: SITE_NAME, url: SITE_URL },
+    },
+    {
+      '@context': 'https://schema.org',
       '@type': 'BreadcrumbList',
       itemListElement: [
         { '@type': 'ListItem', position: 1, name: SITE_NAME, item: SITE_URL },
@@ -62,6 +72,7 @@ export default function ComparisonPage({ params }: { params: { slug: string } })
         <header>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-white leading-tight">{c.title}</h1>
           <p className="mt-4 text-zinc-400 text-lg">{c.intro}</p>
+          <p className="mt-3 text-xs text-zinc-500">Last updated <time dateTime={CONTENT_UPDATED}>{CONTENT_UPDATED}</time></p>
         </header>
 
         <section aria-labelledby="table">

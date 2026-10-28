@@ -1,5 +1,6 @@
 // Shown on the landing page and mirrored into FAQPage structured data (the two must match).
 export const FAQS = [
+  { q: 'What is aydex.cloud?', a: 'aydex.cloud is a privacy-first web analytics service. It counts pageviews, visitors, bounce rate, funnels and revenue by source without cookies or session recordings, tracks visits from AI assistants such as ChatGPT and Perplexity, and explains in plain English why your traffic changed. It has a REST API and an MCP server on every plan.' },
   { q: 'Is aydex.cloud really cookieless?', a: 'Yes. By default the tracking script stores nothing on the visitor’s device. Unique visitors are counted with a daily-rotating hash, and persistent recognition is an opt-in setting. You can verify the served script on the privacy proof page.' },
   { q: 'Do I need a cookie consent banner?', a: 'In its default mode aydex stores nothing on the visitor’s device, which typically avoids the need for a consent banner for analytics. This is not legal advice, so check the rules that apply to you.' },
   { q: 'Does aydex record user sessions?', a: 'No. It counts rage clicks, dead clicks, JavaScript errors, scroll depth, outbound links and downloads, and sends only a count plus a CSS selector or scrubbed message. It never captures screens, text or keystrokes.' },
