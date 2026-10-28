@@ -19,6 +19,161 @@ export interface Guide {
 
 export const GUIDES: Guide[] = [
   {
+    slug: "install-on-wordpress",
+    title: "How to add aydex.cloud analytics to WordPress",
+    description: "Add cookieless analytics to a WordPress site with the aydex.cloud plugin or a one-line snippet, and check that it works.",
+    summary: "Two ways to install aydex.cloud on WordPress: the small plugin, or a header snippet.",
+    blocks: [
+      {
+            "t": "p",
+            "text": "aydex.cloud needs one script tag on every page. On WordPress you can add it with the aydex.cloud plugin, or paste the tag into your theme header with a snippet plugin."
+      },
+      {
+            "t": "h2",
+            "text": "Option 1: the aydex.cloud plugin"
+      },
+      {
+            "t": "ol",
+            "items": [
+                  "Download the aydex-cloud folder from the packages/wordpress directory of the aydex repository and zip it.",
+                  "In WordPress go to Plugins, Add New, Upload Plugin, and activate it.",
+                  "Open Settings, aydex.cloud and paste your tracking ID from the dashboard.",
+                  "Leave “do not count administrators” ticked so your own visits do not skew numbers."
+            ]
+      },
+      {
+            "t": "p",
+            "text": "The plugin has only been syntax-checked, not run inside every WordPress version, so check the verification step below."
+      },
+      {
+            "t": "h2",
+            "text": "Option 2: paste the snippet"
+      },
+      {
+            "t": "p",
+            "text": "With a header-injection plugin such as WPCode, add this to the site-wide header:"
+      },
+      {
+            "t": "code",
+            "text": "<script defer data-site=\"YOUR_TRACKING_ID\" src=\"https://t.aydex.cloud/script.js\"></script>"
+      },
+      {
+            "t": "h2",
+            "text": "Check that it works"
+      },
+      {
+            "t": "p",
+            "text": "Open your site in a private window, then look at the Live view in your aydex dashboard. A visit should appear within a few seconds. If it does not, a caching or security plugin may be stripping the tag, or an ad blocker is blocking the request in your own browser."
+      }
+],
+    faqs: [
+      {
+            "q": "Do I need a cookie banner for aydex on WordPress?",
+            "a": "aydex does not set cookies or store anything on the visitor’s device by default. Whether you need a banner depends on your other plugins and on your local law, which this guide cannot decide for you."
+      }
+],
+  },
+  {
+    slug: "install-on-nextjs",
+    title: "How to add aydex.cloud analytics to a Next.js app",
+    description: "Add cookieless analytics to a Next.js App Router project with next/script. Single-page navigations are tracked automatically.",
+    summary: "One component in your root layout is all a Next.js app needs.",
+    blocks: [
+      {
+            "t": "p",
+            "text": "The aydex script tracks client-side navigations by itself, so no router hooks are needed. Load it with next/script in the root layout."
+      },
+      {
+            "t": "code",
+            "text": "import Script from 'next/script'\n\nexport default function RootLayout({ children }: { children: React.ReactNode }) {\n  return (\n    <html lang=\"en\">\n      <body>\n        {children}\n        <Script src=\"https://t.aydex.cloud/script.js\" data-site=\"YOUR_TRACKING_ID\" strategy=\"afterInteractive\" />\n      </body>\n    </html>\n  )\n}"
+      },
+      {
+            "t": "h2",
+            "text": "Custom events"
+      },
+      {
+            "t": "p",
+            "text": "After the script loads, call window.aydex.track('signup') anywhere in client code. Event names starting with an underscore are reserved."
+      },
+      {
+            "t": "h2",
+            "text": "Avoid ad blockers"
+      },
+      {
+            "t": "p",
+            "text": "Some blockers filter third-party analytics domains. You can proxy the script and collector through your own domain using Next.js rewrites; see the first-party proxy recipes in the aydex README."
+      }
+],
+    faqs: [
+      {
+            "q": "Does it work with the Pages Router?",
+            "a": "Yes. Put the same Script component in pages/_app.tsx."
+      }
+],
+  },
+  {
+    slug: "install-on-shopify",
+    title: "How to add aydex.cloud analytics to Shopify",
+    description: "Add cookieless analytics to a Shopify store by pasting one script tag into theme.liquid.",
+    summary: "Paste one line into your theme to start tracking a Shopify store.",
+    blocks: [
+      {
+            "t": "ol",
+            "items": [
+                  "In the Shopify admin go to Online Store, Themes, then Edit code on your live theme.",
+                  "Open layout/theme.liquid.",
+                  "Paste this line just before the closing head tag, replacing YOUR_TRACKING_ID with the ID from your aydex dashboard.",
+                  "Save, then visit your storefront and watch the Live view in aydex."
+            ]
+      },
+      {
+            "t": "code",
+            "text": "<script defer data-site=\"YOUR_TRACKING_ID\" src=\"https://t.aydex.cloud/script.js\"></script>"
+      },
+      {
+            "t": "p",
+            "text": "This tracks storefront pages. Checkout pages on Shopify are controlled by Shopify and may not run custom scripts on every plan, so conversions at checkout may not be visible. Keep a copy of the line, because switching themes means pasting it again."
+      }
+],
+    faqs: [
+      {
+            "q": "Can I track purchases?",
+            "a": "Not automatically. Checkout pages are restricted on many plans. If your theme has a thank-you page you can edit, call window.aydex.track('purchase', { value: 49 }) there."
+      }
+],
+  },
+  {
+    slug: "install-with-google-tag-manager",
+    title: "How to add aydex.cloud analytics with Google Tag Manager",
+    description: "Install aydex.cloud through a Google Tag Manager custom HTML tag, and the caveats to know about.",
+    summary: "Use a Custom HTML tag in GTM to load aydex on every page.",
+    blocks: [
+      {
+            "t": "ol",
+            "items": [
+                  "In Tag Manager create a new tag of type Custom HTML.",
+                  "Paste the snippet below, with your tracking ID.",
+                  "Set the trigger to All Pages (or Initialization - All Pages).",
+                  "Preview, then publish the container."
+            ]
+      },
+      {
+            "t": "code",
+            "text": "<script defer data-site=\"YOUR_TRACKING_ID\" src=\"https://t.aydex.cloud/script.js\"></script>"
+      },
+      {
+            "t": "p",
+            "text": "Prefer installing the script directly in your site where you can. Tag Manager is itself blocked by many privacy tools, so visitors using them will not be counted, and the tag adds a loading step before analytics starts."
+      }
+],
+    faqs: [
+      {
+            "q": "Why are my numbers lower through GTM?",
+            "a": "Visitors whose browsers block Tag Manager never load the aydex tag. Installing the script directly in your pages avoids that."
+      }
+],
+  },
+  {
     slug: 'track-chatgpt-perplexity-traffic',
     title: 'How to see traffic from ChatGPT, Perplexity and Claude in your analytics',
     description:
