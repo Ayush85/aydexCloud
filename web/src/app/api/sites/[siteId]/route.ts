@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { randomBytes } from 'crypto'
+import { PLANS } from '@/lib/plans'
+import { webhookKind, maskWebhook } from '@/lib/webhook'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,7 +25,10 @@ export async function PATCH(
   }
 
   const body = await req.json()
-  const data: { isPublic?: boolean; publicToken?: string; storageMode?: string } = {}
+  const data: {
+    isPublic?: boolean; publicToken?: string; storageMode?: string
+    alertsEnabled?: boolean; webhookUrl?: string | null
+  } = {}
 
   if (typeof body.isPublic === 'boolean') {
     data.isPublic = body.isPublic
@@ -40,12 +45,30 @@ export async function PATCH(
     data.storageMode = body.storageMode
   }
 
+  if (typeof body.alertsEnabled === 'boolean') {
+    if (body.alertsEnabled) {
+      const owner = await prisma.user.findUnique({ where: { id: session.user.id } })
+      if (!owner || !PLANS[owner.planTier].alerts) {
+        return NextResponse.json({ error: 'Traffic alerts are included on the Pro and Agency plans.' }, { status: 403 })
+      }
+    }
+    data.alertsEnabled = body.alertsEnabled
+  }
+
+  if (typeof body.webhookUrl === 'string') {
+    const url = body.webhookUrl.trim()
+    if (url === '') data.webhookUrl = null
+    else if (webhookKind(url)) data.webhookUrl = url
+    else return NextResponse.json({ error: 'Use a Slack or Discord incoming-webhook URL (https).' }, { status: 400 })
+  }
+
   const updated = await prisma.site.update({
     where: { id: params.siteId },
     data,
   })
 
-  return NextResponse.json(updated)
+  const { webhookUrl, ...safe } = updated
+  return NextResponse.json({ ...safe, webhook: webhookUrl ? maskWebhook(webhookUrl) : null })
 }
 
 export async function DELETE(

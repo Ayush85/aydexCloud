@@ -82,3 +82,23 @@ export async function sendWeeklyDigest(
     html,
   })
 }
+
+export async function sendAlertEmail(to: string, subject: string, body: string): Promise<void> {
+  if (!process.env.RESEND_API_KEY) return // no-op until configured
+
+  const html = `
+    <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
+      <h2 style="color:#0f172a;font-size:18px">${esc(subject)}</h2>
+      <p style="color:#334155;font-size:14px;line-height:1.5">${esc(body)}</p>
+      <p style="color:#94a3b8;font-size:12px;margin-top:24px">
+        You get this because traffic alerts are on for this site. Turn them off in the site's Alerts tab.
+      </p>
+    </div>`
+
+  await resend.emails.send({
+    from: process.env.EMAIL_FROM || 'aydex.cloud <digest@aydex.cloud>',
+    to,
+    subject,
+    html,
+  })
+}

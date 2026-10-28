@@ -5,6 +5,8 @@ import { redirect, notFound } from 'next/navigation'
 import { AnalyticsDashboard } from '@/components/AnalyticsDashboard'
 import { TrackingSnippet } from '@/components/TrackingSnippet'
 import { DashboardHeader } from '@/components/DashboardHeader'
+import { PLANS } from '@/lib/plans'
+import { maskWebhook } from '@/lib/webhook'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,6 +20,7 @@ export default async function SiteAnalyticsPage({
 
   const site = await prisma.site.findFirst({
     where: { id: params.siteId, userId: session.user.id },
+    include: { user: true },
   })
   if (!site) notFound()
 
@@ -48,6 +51,9 @@ export default async function SiteAnalyticsPage({
           trackingId={site.trackingId}
           isPublic={site.isPublic}
           publicToken={site.publicToken}
+          alertsEnabled={site.alertsEnabled}
+          alertsAllowed={PLANS[site.user.planTier].alerts}
+          webhook={site.webhookUrl ? maskWebhook(site.webhookUrl) : null}
         />
       </main>
     </div>

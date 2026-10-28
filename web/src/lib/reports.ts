@@ -2,6 +2,7 @@ import { prisma } from './prisma'
 import * as stats from './stats'
 import { buildInsights, type DimensionName, type Insight } from './insights'
 import { INSIGHT_DIMENSIONS } from './stats'
+import { annotationInsights } from './annotations'
 
 // Report assembly shared by the dashboard route, the public API, the weekly
 // digest and the MCP server (through the API). One definition of every number.
@@ -87,6 +88,12 @@ export async function getDashboard(site: SiteRef, period: stats.Period) {
     stats.heatmap(w),
   ])
   const goals = await goalStats(site, w, Number(traffic.totals.unique_visitors))
+  const since = new Date(Date.now() - days * 24 * 3600 * 1000).toISOString().slice(0, 10)
+  const annotations = await prisma.annotation.findMany({
+    where: { siteId: site.id, date: { gte: since } },
+    orderBy: { date: 'asc' },
+    select: { id: true, date: true, text: true },
+  })
   return {
     period,
     totals: traffic.totals,
@@ -98,7 +105,8 @@ export async function getDashboard(site: SiteRef, period: stats.Period) {
     pages, referrers, channels, aiReferrals, devices, browsers, campaigns, events, countries,
     entryPages: entryExit.entry,
     exitPages: entryExit.exit,
-    behavior, revenue, insights, goals, heatmap,
+    behavior, revenue, goals, heatmap, annotations,
+    insights: [...insights, ...annotationInsights(annotations)].sort((a, b) => b.weight - a.weight).slice(0, 7),
   }
 }
 

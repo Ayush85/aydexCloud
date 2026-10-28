@@ -7,6 +7,8 @@ export interface PlanLimits {
   maxSites: number
   maxPageviews: number
   apiAccess: boolean
+  /** Daily traffic-drop/spike alerts. */
+  alerts: boolean
   priceEnvVar: string | null
   features: string[]
 }
@@ -19,6 +21,7 @@ export const PLANS: Record<PlanTier, PlanLimits> = {
     maxSites: 1,
     maxPageviews: 10_000,
     apiAccess: true,
+    alerts: false,
     priceEnvVar: null,
     features: ['Real-time dashboard', 'Cookieless tracking', 'REST API + MCP server', 'Community support'],
   },
@@ -29,6 +32,7 @@ export const PLANS: Record<PlanTier, PlanLimits> = {
     maxSites: 3,
     maxPageviews: 100_000,
     apiAccess: true,
+    alerts: false,
     priceEnvVar: 'STRIPE_PRICE_STARTER',
     features: ['Everything in Free', 'Email reports', 'GDPR badge', 'Email support'],
   },
@@ -39,6 +43,7 @@ export const PLANS: Record<PlanTier, PlanLimits> = {
     maxSites: 10,
     maxPageviews: 1_000_000,
     apiAccess: true,
+    alerts: true,
     priceEnvVar: 'STRIPE_PRICE_PRO',
     features: ['Everything in Starter', 'Custom events', 'Traffic alerts', 'Priority email support'],
   },
@@ -49,6 +54,7 @@ export const PLANS: Record<PlanTier, PlanLimits> = {
     maxSites: Infinity,
     maxPageviews: 10_000_000,
     apiAccess: true,
+    alerts: true,
     priceEnvVar: 'STRIPE_PRICE_AGENCY',
     features: ['Everything in Pro', 'White-label option', 'Team seats', 'Priority support'],
   },

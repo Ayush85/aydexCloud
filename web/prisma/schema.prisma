@@ -51,6 +51,11 @@ model Site {
   charts       Chart[]
   goals        Goal[]
   funnels      Funnel[]
+  annotations  Annotation[]
+  // Alerts & notifications
+  alertsEnabled Boolean  @default(false) @map("alerts_enabled")
+  alertDay      String?  @map("last_alert_day")  // UTC day (YYYY-MM-DD) already alerted on
+  webhookUrl    String?  @map("webhook_url")      // Slack/Discord incoming webhook
 
   @@index([userId])
   @@index([trackingId])
@@ -69,6 +74,18 @@ model Goal {
 
   @@index([siteId])
   @@map("goals")
+}
+
+model Annotation {
+  id        String   @id @default(cuid())
+  siteId    String   @map("site_id")
+  date      String   // UTC day, YYYY-MM-DD
+  text      String
+  createdAt DateTime @default(now()) @map("created_at")
+  site      Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([siteId, date])
+  @@map("annotations")
 }
 
 model Funnel {

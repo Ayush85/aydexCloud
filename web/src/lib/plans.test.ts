@@ -17,6 +17,15 @@ describe('API access', () => {
   })
 })
 
+describe('alerts', () => {
+  it('are a Pro and Agency feature', () => {
+    expect(PLANS.FREE.alerts).toBe(false)
+    expect(PLANS.STARTER.alerts).toBe(false)
+    expect(PLANS.PRO.alerts).toBe(true)
+    expect(PLANS.AGENCY.alerts).toBe(true)
+  })
+})
+
 describe('planFromPriceId', () => {
   beforeEach(() => {
     process.env.STRIPE_PRICE_STARTER = 'price_starter_123'
