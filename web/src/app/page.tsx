@@ -169,14 +169,14 @@ const features = [
   {
     icon: <Code />,
     color: 'bg-violet-500/10 text-violet-400',
-    title: 'REST API access',
-    desc: 'Query your analytics programmatically. Build custom reports or pipe data anywhere.',
+    title: 'REST API + MCP on every plan',
+    desc: 'Query your analytics programmatically, or ask Claude about your traffic through the MCP server.',
   },
   {
     icon: <Sparkles />,
     color: 'bg-rose-500/10 text-rose-400',
-    title: 'AI insights (soon)',
-    desc: '"Traffic dropped 30% — likely cause: X." Automated anomaly detection with explanations.',
+    title: 'Why-it-changed insights',
+    desc: 'Plain-English explanations of what accounts for a traffic change, with numbers you can verify.',
   },
 ]
 
@@ -188,7 +188,7 @@ const plans = [
     price: '$0',
     sites: '1 website',
     pv: '10,000 pageviews/mo',
-    features: ['Real-time dashboard', 'Cookieless tracking', 'Self-hostable', 'Community support'],
+    features: ['Real-time dashboard', 'Cookieless tracking', 'REST API + MCP server', 'Community support'],
     cta: 'Start for free',
     highlight: false,
   },
@@ -208,7 +208,7 @@ const plans = [
     price: '$19',
     sites: '10 websites',
     pv: '1,000,000 pageviews/mo',
-    features: ['Everything in Starter', 'REST API access', 'Custom events', 'Traffic alerts'],
+    features: ['Everything in Starter', 'Custom events', 'Traffic alerts', 'Priority email support'],
     cta: 'Start free trial',
     highlight: false,
   },

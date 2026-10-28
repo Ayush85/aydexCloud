@@ -16,6 +16,20 @@ export interface SiteDigest {
   name: string
   views: number
   visitors: number
+  /** Previous week's views, for the change indicator. */
+  prevViews?: number
+  /** Plain-English explanations from the insights engine. */
+  insights?: string[]
+}
+
+const esc = (t: string) =>
+  t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+
+function change(views: number, prev?: number): string {
+  if (prev === undefined || prev === 0) return ''
+  const pct = Math.round(((views - prev) / prev) * 100)
+  const color = pct >= 0 ? '#0e9f78' : '#dc2626'
+  return ` <span style="color:${color};font-size:12px">${pct >= 0 ? '▲' : '▼'} ${Math.abs(pct)}%</span>`
 }
 
 export async function sendWeeklyDigest(
@@ -27,7 +41,18 @@ export async function sendWeeklyDigest(
   const rows = sites
     .map(
       (s) =>
-        `<tr><td style="padding:8px 0;color:#0f172a">${s.name}</td><td style="padding:8px 0;text-align:right">${s.views.toLocaleString()}</td><td style="padding:8px 0;text-align:right">${s.visitors.toLocaleString()}</td></tr>`
+        `<tr><td style="padding:8px 0;color:#0f172a">${esc(s.name)}</td><td style="padding:8px 0;text-align:right">${s.views.toLocaleString()}${change(s.views, s.prevViews)}</td><td style="padding:8px 0;text-align:right">${s.visitors.toLocaleString()}</td></tr>`
+    )
+    .join('')
+
+  const why = sites
+    .filter((s) => s.insights && s.insights.length > 0)
+    .map(
+      (s) =>
+        `<h3 style="color:#0f172a;font-size:14px;margin:20px 0 6px">${esc(s.name)} — what changed</h3>` +
+        `<ul style="margin:0;padding-left:18px;color:#334155;font-size:14px;line-height:1.5">${(s.insights ?? [])
+          .map((t) => `<li>${esc(t)}</li>`)
+          .join('')}</ul>`
     )
     .join('')
 
@@ -42,6 +67,7 @@ export async function sendWeeklyDigest(
         </thead>
         <tbody>${rows}</tbody>
       </table>
+      ${why}
       <p style="color:#94a3b8;font-size:12px;margin-top:24px">
         You're receiving this because email digests are enabled on your account.
         Turn them off any time in your billing settings.

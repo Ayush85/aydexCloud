@@ -42,7 +42,7 @@ export function buildChartQuery(
 
   // 'number' charts have no grouping dimension — a single total for the period.
   if (chart.dimension === 'none') {
-    let where = `site_id = {sid:String} AND timestamp >= now() - INTERVAL {days:Int32} DAY`
+    let where = `site_id = {sid:String} AND timestamp >= now() - INTERVAL {days:Int32} DAY AND NOT startsWith(event_name, '_')`
     if (chart.filterField && isDimensionKey(chart.filterField) && chart.filterValue) {
       where += ` AND ${DIMENSIONS[chart.filterField]} = {filterValue:String}`
       params.filterValue = chart.filterValue
@@ -56,7 +56,7 @@ export function buildChartQuery(
   if (!isDimensionKey(chart.dimension)) throw new Error('Invalid dimension')
   const dimExpr = DIMENSIONS[chart.dimension]
 
-  let where = `site_id = {sid:String} AND timestamp >= now() - INTERVAL {days:Int32} DAY`
+  let where = `site_id = {sid:String} AND timestamp >= now() - INTERVAL {days:Int32} DAY AND NOT startsWith(event_name, '_')`
   if (chart.filterField && isDimensionKey(chart.filterField) && chart.filterValue) {
     where += ` AND ${DIMENSIONS[chart.filterField]} = {filterValue:String}`
     params.filterValue = chart.filterValue

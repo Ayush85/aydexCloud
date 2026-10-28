@@ -50,6 +50,7 @@ model Site {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   charts       Chart[]
   goals        Goal[]
+  funnels      Funnel[]
 
   @@index([userId])
   @@index([trackingId])
@@ -68,6 +69,18 @@ model Goal {
 
   @@index([siteId])
   @@map("goals")
+}
+
+model Funnel {
+  id        String   @id @default(cuid())
+  siteId    String   @map("site_id")
+  name      String
+  steps     Json     // [{ type: "page" | "event", value: string }, ...] (2-8 steps)
+  createdAt DateTime @default(now()) @map("created_at")
+  site      Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([siteId])
+  @@map("funnels")
 }
 
 model ApiKey {

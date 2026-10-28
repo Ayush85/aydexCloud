@@ -3,11 +3,17 @@ import { PLANS, planFromPriceId } from './plans'
 
 describe('plan limits', () => {
   it('matches the published pricing tiers', () => {
-    expect(PLANS.FREE).toMatchObject({ price: 0, maxSites: 1, maxPageviews: 10_000, apiAccess: false })
-    expect(PLANS.STARTER).toMatchObject({ price: 7, maxSites: 3, maxPageviews: 100_000, apiAccess: false })
+    expect(PLANS.FREE).toMatchObject({ price: 0, maxSites: 1, maxPageviews: 10_000, apiAccess: true })
+    expect(PLANS.STARTER).toMatchObject({ price: 7, maxSites: 3, maxPageviews: 100_000, apiAccess: true })
     expect(PLANS.PRO).toMatchObject({ price: 19, maxSites: 10, maxPageviews: 1_000_000, apiAccess: true })
     expect(PLANS.AGENCY).toMatchObject({ price: 49, maxPageviews: 10_000_000, apiAccess: true })
     expect(PLANS.AGENCY.maxSites).toBe(Infinity)
+  })
+})
+
+describe('API access', () => {
+  it('is included on every plan', () => {
+    for (const plan of Object.values(PLANS)) expect(plan.apiAccess).toBe(true)
   })
 })
 
