@@ -1,6 +1,7 @@
 import { PLANS } from './plans'
 import { FAQS } from './faq'
 import { COMPARISONS } from './comparisons'
+import { GUIDES } from './guides'
 import { SITE_URL, SITE_NAME, SITE_TAGLINE, SITE_DESCRIPTION, CONTENT_UPDATED } from './site'
 
 // Plain-text/markdown views of the public site for AI search and assistants
@@ -28,6 +29,7 @@ ${SITE_NAME} is ${SITE_TAGLINE.toLowerCase()}. Last updated ${CONTENT_UPDATED}.
 
 - [What is ${SITE_NAME}?](${SITE_URL}/about): product definition, features, pricing and facts
 - [Compare with other tools](${SITE_URL}/vs): honest comparisons including where each tool is better
+${GUIDES.map((g) => `- [${g.title}](${SITE_URL}/guides/${g.slug}): ${g.description}`).join('\n')}
 - [Pricing](${SITE_URL}/#pricing): plans from free to agency
 - [Privacy proof](${SITE_URL}/privacy-proof): live checks of the exact tracking script served to visitors
 ${COMPARISONS.map((c) => `- [${SITE_NAME} vs ${c.name}](${SITE_URL}/vs/${c.slug}): ${c.description}`).join('\n')}

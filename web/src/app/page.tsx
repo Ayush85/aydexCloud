@@ -597,6 +597,7 @@ export default function LandingPage() {
             <a href="#pricing"  className="hover:text-zinc-300 transition-colors">Pricing</a>
             <Link href="/about" className="hover:text-zinc-300 transition-colors">About</Link>
             <Link href="/vs" className="hover:text-zinc-300 transition-colors">Compare</Link>
+            <Link href="/guides" className="hover:text-zinc-300 transition-colors">Guides</Link>
             <Link href="/privacy-proof" className="hover:text-zinc-300 transition-colors">Privacy proof</Link>
             <Link href="/auth/signup" className="hover:text-zinc-300 transition-colors">Sign up</Link>
           </div>

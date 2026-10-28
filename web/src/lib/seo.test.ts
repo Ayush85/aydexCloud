@@ -70,3 +70,19 @@ describe('geo / llms.txt', () => {
     expect(ai.disallow).toEqual(expect.arrayContaining(['/dashboard', '/api/']))
   })
 })
+
+import { GUIDES } from './guides'
+describe('guides', () => {
+  it('have unique slugs, sane meta lengths, FAQs, and appear in sitemap + llms', () => {
+    expect(new Set(GUIDES.map((g) => g.slug)).size).toBe(GUIDES.length)
+    const urls = sitemap().map((e) => e.url)
+    for (const g of GUIDES) {
+      expect(g.title.length).toBeLessThanOrEqual(100)
+      expect(g.description.length).toBeGreaterThan(80)
+      expect(g.description.length).toBeLessThanOrEqual(220)
+      expect(g.faqs.length).toBeGreaterThan(0)
+      expect(urls.some((u) => u.endsWith(`/guides/${g.slug}`))).toBe(true)
+      expect(llmsTxt()).toContain(`/guides/${g.slug}`)
+    }
+  })
+})
