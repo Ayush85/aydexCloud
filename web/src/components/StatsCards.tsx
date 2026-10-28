@@ -1,3 +1,5 @@
+import { Sparkline } from './Sparkline'
+
 interface Totals {
   total_views: number
   unique_visitors: number
@@ -6,6 +8,7 @@ interface Totals {
 interface Props {
   totals: Totals
   prevTotals?: Totals
+  chart?: Array<{ views: number; visitors: number }>
 }
 
 function fmt(n: number): string {
@@ -20,7 +23,7 @@ function delta(current: number, prev: number): { pct: string; up: boolean } | nu
   return { pct: Math.abs(pct).toFixed(1), up: pct >= 0 }
 }
 
-function StatCard({ label, value, prev }: { label: string; value: number; prev?: number }) {
+function StatCard({ label, value, prev, spark, color }: { label: string; value: number; prev?: number; spark?: number[]; color: string }) {
   const d = prev !== undefined ? delta(value, prev) : null
   return (
     <div className="card p-5">
@@ -38,22 +41,27 @@ function StatCard({ label, value, prev }: { label: string; value: number; prev?:
       {d && (
         <p className="text-xs text-slate-400 dark:text-zinc-500 mt-1">vs previous period</p>
       )}
+      {spark && spark.length > 1 && <div className="mt-3 -mx-1"><Sparkline data={spark} color={color} height={44} /></div>}
     </div>
   )
 }
 
-export function StatsCards({ totals, prevTotals }: Props) {
+export function StatsCards({ totals, prevTotals, chart }: Props) {
   return (
     <div className="grid grid-cols-2 gap-4">
       <StatCard
         label="Total pageviews"
         value={totals.total_views}
         prev={prevTotals?.total_views}
+        spark={chart?.map((c) => Number(c.views))}
+        color="#6366f1"
       />
       <StatCard
         label="Unique visitors"
         value={totals.unique_visitors}
         prev={prevTotals?.unique_visitors}
+        spark={chart?.map((c) => Number(c.visitors))}
+        color="#22c55e"
       />
     </div>
   )

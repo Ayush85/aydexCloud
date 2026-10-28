@@ -1,57 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { ch } from '@/lib/clickhouse'
-import { authenticateApiKey } from '@/lib/apiAuth'
+import { requireApiUser } from '@/lib/apiAuth'
+import { trafficWithHistory } from '@/lib/reports'
+import { pages, parsePeriod, periodDays } from '@/lib/stats'
 
 export const dynamic = 'force-dynamic'
 
-type Row = Record<string, unknown>
-
-async function query<T extends Row>(sql: string, params: Record<string, unknown>): Promise<T[]> {
-  const rs = await ch.query({ query: sql, query_params: params, format: 'JSONEachRow' })
-  return rs.json<T>()
-}
-
-/** Public REST API — Pro+ only. Bearer-token auth via API keys (see /dashboard/settings/api-keys). */
+/** Legacy summary endpoint, kept for backward compatibility. Prefer /api/v1/sites/:id/:report. */
 export async function GET(req: NextRequest, { params }: { params: { siteId: string } }) {
-  const user = await authenticateApiKey(req)
-  if (!user) {
-    return NextResponse.json(
-      { error: 'Invalid or missing API key, or your plan does not include API access.' },
-      { status: 403 }
-    )
-  }
+  const auth = await requireApiUser(req)
+  if ('response' in auth) return auth.response
 
-  const site = await prisma.site.findFirst({ where: { id: params.siteId, userId: user.id } })
+  const site = await prisma.site.findFirst({ where: { id: params.siteId, userId: auth.user.id } })
   if (!site) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const period = req.nextUrl.searchParams.get('period') ?? '7d'
-  const days = period === '30d' ? 30 : period === 'today' ? 1 : 7
-  const sid = site.trackingId
-
-  const [totals, chart, pages] = await Promise.all([
-    query<{ total_views: number; unique_visitors: number }>(`
-      SELECT count() AS total_views, uniqExact(visitor_hash) AS unique_visitors
-      FROM analytics.pageviews
-      WHERE site_id = {sid:String} AND timestamp >= now() - INTERVAL {days:Int32} DAY AND event_name = 'pageview'
-    `, { sid, days }),
-    query<{ date: string; views: number; visitors: number }>(`
-      SELECT toStartOfDay(timestamp) AS date, count() AS views, uniqExact(visitor_hash) AS visitors
-      FROM analytics.pageviews
-      WHERE site_id = {sid:String} AND timestamp >= now() - INTERVAL {days:Int32} DAY AND event_name = 'pageview'
-      GROUP BY date ORDER BY date ASC
-    `, { sid, days }),
-    query<{ url: string; views: number; visitors: number }>(`
-      SELECT url, count() AS views, uniqExact(visitor_hash) AS visitors
-      FROM analytics.pageviews
-      WHERE site_id = {sid:String} AND timestamp >= now() - INTERVAL {days:Int32} DAY AND event_name = 'pageview'
-      GROUP BY url ORDER BY views DESC LIMIT 10
-    `, { sid, days }),
-  ])
-
-  return NextResponse.json({
-    totals: totals[0] ?? { total_views: 0, unique_visitors: 0 },
-    chart,
-    pages,
-  })
+  const w = { sid: site.trackingId, days: periodDays(parsePeriod(req.nextUrl.searchParams.get('period'))) }
+  const [traffic, topPages] = await Promise.all([trafficWithHistory(w), pages(w)])
+  return NextResponse.json({ totals: traffic.totals, chart: traffic.chart, pages: topPages })
 }

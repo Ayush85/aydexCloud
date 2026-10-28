@@ -6,7 +6,7 @@ import { Providers } from './providers'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Aydex — Privacy-First Analytics',
+  title: { default: 'aydex.cloud — Privacy-first analytics', template: '%s · aydex.cloud' },
   description: 'GDPR-compliant web analytics. No cookies. No consent banners. Just clean data.',
 }
 

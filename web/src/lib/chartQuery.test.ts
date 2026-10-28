@@ -64,3 +64,16 @@ describe('chartQuery whitelist', () => {
     expect(params.filterValue).toBeUndefined()
   })
 })
+
+describe('internal behaviour events', () => {
+  it('are excluded from custom charts (both shapes)', () => {
+    for (const dimension of ['none', 'url']) {
+      const { sql } = buildChartQuery(
+        { metric: 'views', dimension, filterField: null, filterValue: null },
+        'site123',
+        7
+      )
+      expect(sql).toContain("NOT startsWith(event_name, '_')")
+    }
+  })
+})

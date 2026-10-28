@@ -1,5 +1,6 @@
 'use client'
 
+import { Logo } from '@/components/Logo'
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
@@ -35,7 +36,7 @@ export default function SignInPage() {
     <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <Link href="/" className="text-2xl font-bold text-brand-600">aydex.cloud</Link>
+          <Link href="/" className="inline-flex"><Logo size={36} /></Link>
           <p className="mt-2 text-slate-500 text-sm">Sign in to your dashboard</p>
         </div>
 

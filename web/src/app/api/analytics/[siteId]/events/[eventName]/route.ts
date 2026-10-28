@@ -26,7 +26,7 @@ export async function GET(
     query: `
       SELECT timestamp, event_props
       FROM analytics.pageviews
-      WHERE site_id = {sid:String} AND event_name = {eventName:String}
+      WHERE site_id = {sid:String} AND event_name = {eventName:String} AND NOT startsWith(event_name, '_')
       ORDER BY timestamp DESC
       LIMIT 50
     `,

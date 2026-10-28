@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Logo } from '@/components/Logo'
 
 /* ── Icon primitives ─────────────────────────────────────── */
 const Shield = () => (
@@ -169,14 +170,14 @@ const features = [
   {
     icon: <Code />,
     color: 'bg-violet-500/10 text-violet-400',
-    title: 'REST API access',
-    desc: 'Query your analytics programmatically. Build custom reports or pipe data anywhere.',
+    title: 'REST API + MCP on every plan',
+    desc: 'Query your analytics programmatically, or ask Claude about your traffic through the MCP server.',
   },
   {
     icon: <Sparkles />,
     color: 'bg-rose-500/10 text-rose-400',
-    title: 'AI insights (soon)',
-    desc: '"Traffic dropped 30% — likely cause: X." Automated anomaly detection with explanations.',
+    title: 'Why-it-changed insights',
+    desc: 'Plain-English explanations of what accounts for a traffic change, with numbers you can verify.',
   },
 ]
 
@@ -188,7 +189,7 @@ const plans = [
     price: '$0',
     sites: '1 website',
     pv: '10,000 pageviews/mo',
-    features: ['Real-time dashboard', 'Cookieless tracking', 'Self-hostable', 'Community support'],
+    features: ['Real-time dashboard', 'Cookieless tracking', 'REST API + MCP server', 'Community support'],
     cta: 'Start for free',
     highlight: false,
   },
@@ -208,7 +209,7 @@ const plans = [
     price: '$19',
     sites: '10 websites',
     pv: '1,000,000 pageviews/mo',
-    features: ['Everything in Starter', 'REST API access', 'Custom events', 'Traffic alerts'],
+    features: ['Everything in Starter', 'Custom events', 'Traffic alerts', 'Priority email support'],
     cta: 'Start free trial',
     highlight: false,
   },
@@ -233,9 +234,7 @@ export default function LandingPage() {
       <header className="sticky top-0 z-50 border-b border-zinc-800/60 bg-zinc-950/80 backdrop-blur-md">
         <nav className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-8">
-            <span className="text-lg font-bold grad-text bg-gradient-to-r from-white to-zinc-400">
-              aydex.cloud
-            </span>
+            <Logo size={28} tone="on-dark" />
             <div className="hidden items-center gap-6 text-sm text-zinc-400 sm:flex">
               <a href="#features" className="hover:text-white transition-colors">Features</a>
               <a href="#pricing"  className="hover:text-white transition-colors">Pricing</a>
@@ -531,12 +530,11 @@ export default function LandingPage() {
       {/* ── Footer ────────────────────────────────────────── */}
       <footer className="border-t border-zinc-800/60 bg-zinc-900/30">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 py-10 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <span className="text-base font-bold grad-text bg-gradient-to-r from-white to-zinc-500">
-            aydex.cloud
-          </span>
+          <Logo size={24} tone="on-dark" />
           <div className="flex gap-6 text-sm text-zinc-500">
             <a href="#features" className="hover:text-zinc-300 transition-colors">Features</a>
             <a href="#pricing"  className="hover:text-zinc-300 transition-colors">Pricing</a>
+            <Link href="/privacy-proof" className="hover:text-zinc-300 transition-colors">Privacy proof</Link>
             <Link href="/auth/signup" className="hover:text-zinc-300 transition-colors">Sign up</Link>
           </div>
           <p className="text-xs text-zinc-600">© 2026 Aydex. Privacy-first analytics. Built by Ayush.</p>

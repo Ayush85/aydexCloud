@@ -22,11 +22,37 @@ function randomKey(): string {
   return btoa(binary)
 }
 
+type ProxyKind = 'nginx' | 'next' | 'caddy'
+
+function proxyConfig(kind: ProxyKind, trackerUrl: string): string {
+  if (kind === 'nginx')
+    return `location /stats/ {
+    proxy_pass ${trackerUrl}/;
+    proxy_set_header Host $proxy_host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_set_header User-Agent $http_user_agent;
+}`
+  if (kind === 'caddy')
+    return `handle_path /stats/* {
+    reverse_proxy ${trackerUrl} {
+        header_up X-Real-IP {remote_host}
+    }
+}`
+  return `// next.config.js
+module.exports = {
+  async rewrites() {
+    return [{ source: '/stats/:path*', destination: '${trackerUrl}/:path*' }]
+  },
+}`
+}
+
 export function TrackingSnippet({ siteId, trackingId, trackerUrl, initialStorageMode }: Props) {
   const [storageMode, setStorageMode] = useState(initialStorageMode)
   const [key, setKey] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [proxy, setProxy] = useState<ProxyKind>('nginx')
 
   async function handleModeChange(mode: string) {
     setStorageMode(mode)
@@ -89,6 +115,37 @@ export function TrackingSnippet({ siteId, trackingId, trackerUrl, initialStorage
           option recognizes repeat visitors across sessions, encrypted with the key below.
         </p>
       </div>
+
+      <details className="rounded-lg border border-slate-200 dark:border-zinc-800 p-3 text-sm">
+        <summary className="cursor-pointer font-medium text-slate-700 dark:text-zinc-300">
+          Get past ad blockers — serve the tracker from your own domain
+        </summary>
+        <div className="mt-3 space-y-3 text-xs text-slate-500 dark:text-zinc-400">
+          <p>
+            Blockers match third-party tracker domains. Proxy aydex through a path on your own site and the script
+            and events become first-party requests. Pick your server, add the rule, then use the snippet below.
+          </p>
+          <div className="flex gap-2">
+            {(['nginx', 'caddy', 'next'] as ProxyKind[]).map((k) => (
+              <button
+                key={k}
+                onClick={() => setProxy(k)}
+                className={`px-2.5 py-1 rounded-md border text-xs ${proxy === k ? 'bg-brand-600 border-brand-600 text-white' : 'border-slate-200 dark:border-zinc-700'}`}
+              >
+                {k === 'next' ? 'Next.js' : k}
+              </button>
+            ))}
+          </div>
+          <pre className="bg-slate-900 text-green-400 rounded-lg p-3 overflow-x-auto font-mono">{proxyConfig(proxy, trackerUrl)}</pre>
+          <pre className="bg-slate-900 text-green-400 rounded-lg p-3 overflow-x-auto font-mono whitespace-pre-wrap break-all">{`<script defer data-site="${trackingId}" data-endpoint="e" src="/stats/s.js"></script>`}</pre>
+          <p>
+            The proxy must pass the visitor&apos;s real IP (X-Real-IP) so unique-visitor counts and countries stay
+            accurate. Optional script attributes: <code>data-behavior=&quot;off&quot;</code> (disable click/error signals),{' '}
+            <code>data-spa=&quot;off&quot;</code>, <code>data-respect-dnt=&quot;true&quot;</code>,{' '}
+            <code>data-aydex-ignore</code> on any element to exclude its clicks.
+          </p>
+        </div>
+      </details>
 
       {storageMode !== 'memory' && key && (
         <div className="rounded-lg border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/40 p-3 space-y-2">

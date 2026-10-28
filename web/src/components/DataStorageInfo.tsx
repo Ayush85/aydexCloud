@@ -9,7 +9,7 @@ const COLLECTED = [
 const NOT_USED = ['Cookies', 'localStorage', 'sessionStorage', 'Fingerprinting scripts']
 
 const WHERE_STORED = [
-  { store: 'ClickHouse — analytics.pageviews', detail: 'url, referrer, browser, os, device_type, event_name, event_props, visitor_hash, timestamp. Auto-deleted after 2 years (TTL).' },
+  { store: 'ClickHouse — analytics.pageviews', detail: 'url, referrer (host only), browser, os, device_type, country, event_name, event_props, visitor_hash, timestamp. Behaviour signals (page time, scroll depth, rage/dead clicks, JS errors, outbound/download clicks) are stored as small counted events — never text, keystrokes or recordings. Auto-deleted after 2 years (TTL).' },
   { store: 'Redis — live:<siteId>', detail: 'Only visitor_hash, in a sorted set with a 15-minute TTL, used for the live-visitor count. Nothing else is kept here.' },
   { store: 'PostgreSQL', detail: 'Your account and site configuration only — no visitor data.' },
 ]

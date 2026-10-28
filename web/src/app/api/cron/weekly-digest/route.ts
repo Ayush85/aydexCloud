@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { ch } from '@/lib/clickhouse'
+import { getInsights } from '@/lib/reports'
+import { totals } from '@/lib/stats'
 import { sendWeeklyDigest, type SiteDigest } from '@/lib/email'
 
 export const dynamic = 'force-dynamic'
@@ -34,17 +35,25 @@ async function handleWeeklyDigest(req: NextRequest) {
 
     const digests: SiteDigest[] = []
     for (const site of user.sites) {
-      const rs = await ch.query({
-        query: `
-          SELECT count() AS views, uniqExact(visitor_hash) AS visitors
-          FROM analytics.pageviews
-          WHERE site_id = {sid:String} AND timestamp >= now() - INTERVAL 7 DAY AND event_name = 'pageview'
-        `,
-        query_params: { sid: site.trackingId },
-        format: 'JSONEachRow',
-      })
-      const [row] = await rs.json<{ views: number; visitors: number }>()
-      digests.push({ name: site.name, views: row?.views ?? 0, visitors: row?.visitors ?? 0 })
+      try {
+        const w = { sid: site.trackingId, days: 7 }
+        const [cur, prev, insights] = await Promise.all([
+          totals(w),
+          totals({ ...w, prev: true }),
+          getInsights(site, 7),
+        ])
+        digests.push({
+          name: site.name,
+          views: Number(cur.total_views),
+          visitors: Number(cur.unique_visitors),
+          prevViews: Number(prev.total_views),
+          insights: insights.filter((i) => i.kind !== 'note').slice(0, 3).map((i) => i.text),
+        })
+      } catch (err) {
+        // One site's failed query must not stop everyone else's digest.
+        console.error('weekly digest: site failed', site.id, err)
+        digests.push({ name: site.name, views: 0, visitors: 0 })
+      }
     }
 
     await sendWeeklyDigest(user.email, digests)

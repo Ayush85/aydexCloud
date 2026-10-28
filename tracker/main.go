@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"crypto/tls"
+	_ "embed"
 	"encoding/hex"
 	"log"
 	"net"
@@ -13,6 +14,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"tracker/internal/filter"
 
 	clickhouse "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/getsentry/sentry-go"
@@ -26,6 +29,10 @@ import (
 // customer site never visibly breaks.
 const rateLimitPerMinute = 300
 
+// Internal behaviour signals (_dur, _rage, ...) have their own, higher limit and
+// never count toward the monthly quota or the live-visitor set.
+const internalRateLimitPerMinute = 900
+
 var pixel = []byte{
 	0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x01, 0x00,
 	0x01, 0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -35,76 +42,8 @@ var pixel = []byte{
 	0x01, 0x00, 0x3b,
 }
 
-const trackingScript = `(function(){
-  var s=document.currentScript;
-  if(!s)s=document.querySelector('script[data-site]');
-  if(!s)return;
-  var sid=s.getAttribute('data-site');
-  if(!sid)return;
-  var base=s.src.substring(0,s.src.lastIndexOf('/'));
-  var storageMode=s.getAttribute('data-storage')||'';
-  var dataKey=s.getAttribute('data-key')||'';
-
-  // Optional persistent, encrypted anonymous visitor id (opt-in via data-storage).
-  // Default (no data-storage / "memory") keeps today's behavior: no client storage at all.
-  async function deriveKey(passphrase,salt){
-    var bk=await crypto.subtle.importKey('raw',new TextEncoder().encode(passphrase),'PBKDF2',false,['deriveKey']);
-    return crypto.subtle.deriveKey({name:'PBKDF2',salt:new TextEncoder().encode(salt),iterations:100000,hash:'SHA-256'},bk,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
-  }
-  function toB64(bytes){var bin='';for(var i=0;i<bytes.length;i++)bin+=String.fromCharCode(bytes[i]);return btoa(bin);}
-  function fromB64(b64){var bin=atob(b64);var bytes=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);return bytes;}
-  async function encryptVal(plaintext,key){
-    var iv=crypto.getRandomValues(new Uint8Array(12));
-    var ct=await crypto.subtle.encrypt({name:'AES-GCM',iv:iv},key,new TextEncoder().encode(plaintext));
-    var combined=new Uint8Array(iv.length+ct.byteLength);
-    combined.set(iv,0);combined.set(new Uint8Array(ct),iv.length);
-    return toB64(combined);
-  }
-  async function decryptVal(encoded,key){
-    var combined=fromB64(encoded);
-    var iv=combined.slice(0,12);
-    var ct=combined.slice(12);
-    var pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:iv},key,ct);
-    return new TextDecoder().decode(pt);
-  }
-  async function getVisitorId(){
-    if(!storageMode||storageMode==='memory')return '';
-    try{
-      var store=storageMode==='localStorage'?window.localStorage:window.sessionStorage;
-      var existing=store.getItem('aydex_vid');
-      var key=dataKey?await deriveKey(dataKey,sid):null;
-      if(existing){
-        if(key){
-          try{return await decryptVal(existing,key);}catch(e){/* corrupt/undecryptable — fall through and regenerate */}
-        }else{
-          return existing;
-        }
-      }
-      var id=(crypto.randomUUID?crypto.randomUUID():(Date.now()+'-'+Math.random().toString(36).slice(2)));
-      store.setItem('aydex_vid',key?(await encryptVal(id,key)):id);
-      return id;
-    }catch(e){return '';}
-  }
-  var vidPromise=getVisitorId();
-
-  function send(eventName,props){
-    vidPromise.then(function(vid){
-      var p=encodeURIComponent(location.pathname+location.search);
-      var r=encodeURIComponent(document.referrer||'');
-      var w=screen.width;
-      var q='?s='+sid+'&p='+p+'&r='+r+'&w='+w;
-      if(vid)q+='&v='+encodeURIComponent(vid);
-      if(eventName&&eventName!=='pageview'){
-        q+='&e='+encodeURIComponent(eventName);
-        if(props)q+='&ep='+encodeURIComponent(JSON.stringify(props));
-      }
-      new Image().src=base+'/collect'+q;
-    });
-  }
-  send();
-  // Expose aydex.track() for custom events
-  window.aydex={track:function(name,props){send(name,props);}};
-})();`
+//go:embed script.js
+var trackingScript string
 
 var (
 	db        clickhouse.Conn
@@ -134,6 +73,10 @@ func main() {
 	var chTLS *tls.Config
 	if getEnv("CLICKHOUSE_TLS", "false") == "true" {
 		chTLS = &tls.Config{}
+	}
+
+	if extra := os.Getenv("SPAM_REFERRERS"); extra != "" {
+		filter.AddSpamReferrers(strings.Split(extra, ","))
 	}
 
 	var err error
@@ -187,8 +130,13 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/script.js", handleScript)
-	mux.HandleFunc("/collect", handleCollect)
+	// /s.js and /e are neutral aliases that content blockers match less often.
+	for _, p := range []string{"/script.js", "/s.js"} {
+		mux.HandleFunc(p, handleScript)
+	}
+	for _, p := range []string{"/collect", "/e"} {
+		mux.HandleFunc(p, handleCollect)
+	}
 	mux.HandleFunc("/health", handleHealth)
 
 	port := getEnv("PORT", "3001")
@@ -221,7 +169,25 @@ func ensureTable() error {
 		return err
 	}
 	// Idempotent migration for installs created before country tracking existed.
-	return db.Exec(ctx, `ALTER TABLE analytics.pageviews ADD COLUMN IF NOT EXISTS country LowCardinality(String) DEFAULT ''`)
+	if err := db.Exec(ctx, `ALTER TABLE analytics.pageviews ADD COLUMN IF NOT EXISTS country LowCardinality(String) DEFAULT ''`); err != nil {
+		return err
+	}
+	// Daily aggregates imported from other tools (e.g. a GA4 CSV export). Only
+	// ever used for dates before a site's first native event.
+	return db.Exec(ctx, `
+		CREATE TABLE IF NOT EXISTS analytics.imported_daily
+		(
+			site_id    String,
+			date       Date,
+			source     LowCardinality(String) DEFAULT 'ga4',
+			pageviews  UInt64,
+			visitors   UInt64,
+			sessions   UInt64 DEFAULT 0,
+			imported_at DateTime DEFAULT now()
+		)
+		ENGINE = ReplacingMergeTree(imported_at)
+		ORDER BY (site_id, date, source)
+	`)
 }
 
 // shouldDrop reports whether a counter has exceeded its limit. A negative
@@ -239,6 +205,11 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleScript(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodOptions {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
 	w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
 	w.Header().Set("Cache-Control", "public, max-age=3600")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -248,6 +219,10 @@ func handleScript(w http.ResponseWriter, r *http.Request) {
 func handleCollect(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
 	w.Header().Set("Content-Type", "image/gif")
 	defer w.Write(pixel)
 
@@ -259,20 +234,20 @@ func handleCollect(w http.ResponseWriter, r *http.Request) {
 
 	rawUA := r.Header.Get("User-Agent")
 	ua := useragent.Parse(rawUA)
-	if ua.Bot {
+	if ua.Bot || filter.IsBotUA(rawUA) {
 		return
 	}
 
-	pageURL, _ := url.QueryUnescape(q.Get("p"))
-	if pageURL == "" {
-		pageURL = "/"
+	eventName, internal, ok := filter.NormalizeEvent(q.Get("e"))
+	if !ok {
+		return
 	}
+	pageURL := filter.ClampURL(q.Get("p"))
 	referrer := cleanReferrer(q.Get("r"))
-	eventName := q.Get("e")
-	if eventName == "" {
-		eventName = "pageview"
+	if filter.IsSpamReferrer(referrer) {
+		return
 	}
-	eventProps := q.Get("ep")
+	eventProps := filter.ClampProps(q.Get("ep"))
 
 	browser := ua.Name
 	if browser == "" {
@@ -323,38 +298,7 @@ func handleCollect(w http.ResponseWriter, r *http.Request) {
 	// round trip. Fails open (never drops writes) if Redis is unavailable —
 	// same graceful-degradation philosophy as the rest of this service.
 	if rdb != nil {
-		minuteKey := "ratelimit:" + ip + ":" + siteID + ":" + now.Format("200601021504")
-		monthKey := "quota:used:" + siteID + ":" + now.Format("200601")
-		limitKey := "quota:limit:" + siteID
-
-		pipe := rdb.Pipeline()
-		rateCmd := pipe.Incr(ctx, minuteKey)
-		pipe.Expire(ctx, minuteKey, 65*time.Second)
-		quotaCmd := pipe.Incr(ctx, monthKey)
-		pipe.Expire(ctx, monthKey, 35*24*time.Hour)
-		limitCmd := pipe.Get(ctx, limitKey)
-		pipe.ZAdd(ctx, "live:"+siteID, redis.Z{Score: float64(now.Unix()), Member: visitorHash})
-		pipe.ZRemRangeByScore(ctx, "live:"+siteID, "-inf",
-			strconv.FormatInt(now.Add(-10*time.Minute).Unix(), 10))
-		pipe.Expire(ctx, "live:"+siteID, 15*time.Minute)
-		if _, err := pipe.Exec(ctx); err != nil && err != redis.Nil {
-			log.Printf("Redis pipeline error: %v", err)
-			captureError(err)
-		} else {
-			if shouldDrop(rateCmd.Val(), rateLimitPerMinute) {
-				drop = true
-			}
-			// Missing limit key = no plan synced yet; default to the Free tier cap.
-			limit := int64(10_000)
-			if limitStr, err := limitCmd.Result(); err == nil {
-				if parsed, err := strconv.ParseInt(limitStr, 10, 64); err == nil {
-					limit = parsed
-				}
-			}
-			if shouldDrop(quotaCmd.Val(), limit) {
-				drop = true
-			}
-		}
+		drop = limitAndTrack(ctx, now, ip, siteID, visitorHash, internal)
 	}
 
 	if drop {
@@ -371,6 +315,54 @@ func handleCollect(w http.ResponseWriter, r *http.Request) {
 		log.Printf("CH insert error: %v", err)
 		captureError(err)
 	}
+}
+
+// limitAndTrack applies the per-IP rate limit and (for real pageviews/custom
+// events only) the monthly quota and live-visitor tracking. It reports whether
+// the event should be dropped and fails open on Redis errors.
+func limitAndTrack(ctx context.Context, now time.Time, ip, siteID, visitorHash string, internal bool) bool {
+	pipe := rdb.Pipeline()
+	if internal {
+		key := "ratelimit:i:" + ip + ":" + siteID + ":" + now.Format("200601021504")
+		rateCmd := pipe.Incr(ctx, key)
+		pipe.Expire(ctx, key, 65*time.Second)
+		if _, err := pipe.Exec(ctx); err != nil && err != redis.Nil {
+			log.Printf("Redis pipeline error: %v", err)
+			captureError(err)
+			return false
+		}
+		return shouldDrop(rateCmd.Val(), internalRateLimitPerMinute)
+	}
+
+	minuteKey := "ratelimit:" + ip + ":" + siteID + ":" + now.Format("200601021504")
+	monthKey := "quota:used:" + siteID + ":" + now.Format("200601")
+	limitKey := "quota:limit:" + siteID
+
+	rateCmd := pipe.Incr(ctx, minuteKey)
+	pipe.Expire(ctx, minuteKey, 65*time.Second)
+	quotaCmd := pipe.Incr(ctx, monthKey)
+	pipe.Expire(ctx, monthKey, 35*24*time.Hour)
+	limitCmd := pipe.Get(ctx, limitKey)
+	pipe.ZAdd(ctx, "live:"+siteID, redis.Z{Score: float64(now.Unix()), Member: visitorHash})
+	pipe.ZRemRangeByScore(ctx, "live:"+siteID, "-inf",
+		strconv.FormatInt(now.Add(-10*time.Minute).Unix(), 10))
+	pipe.Expire(ctx, "live:"+siteID, 15*time.Minute)
+	if _, err := pipe.Exec(ctx); err != nil && err != redis.Nil {
+		log.Printf("Redis pipeline error: %v", err)
+		captureError(err)
+		return false
+	}
+	if shouldDrop(rateCmd.Val(), rateLimitPerMinute) {
+		return true
+	}
+	// Missing limit key = no plan synced yet; default to the Free tier cap.
+	limit := int64(10_000)
+	if limitStr, err := limitCmd.Result(); err == nil {
+		if parsed, err := strconv.ParseInt(limitStr, 10, 64); err == nil {
+			limit = parsed
+		}
+	}
+	return shouldDrop(quotaCmd.Val(), limit)
 }
 
 func captureError(err error) {

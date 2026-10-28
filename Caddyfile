@@ -1,11 +1,15 @@
-# apex/www intentionally NOT proxied here anymore — DNS for those now points
-# at Vercel, which hosts the web app directly. Caddy only fronts the pieces
-# that stay on this VPS: the tracker and (for Vercel's benefit) ClickHouse.
+# Self-hosted: Caddy terminates TLS for everything. ClickHouse is internal
+# only (no public proxy) — the web app reaches it over the compose network.
+
+www.{$APP_DOMAIN} {
+	redir https://{$APP_DOMAIN}{uri} permanent
+}
+
+{$APP_DOMAIN} {
+	encode gzip
+	reverse_proxy web:3000
+}
 
 {$TRACKER_DOMAIN} {
 	reverse_proxy tracker:3001
-}
-
-ch.{$APP_DOMAIN} {
-	reverse_proxy clickhouse:8123
 }
