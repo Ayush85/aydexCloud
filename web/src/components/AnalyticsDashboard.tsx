@@ -20,6 +20,8 @@ import { RevenuePanel } from './RevenuePanel'
 import { FunnelsPanel } from './FunnelsPanel'
 import { ImportPanel } from './ImportPanel'
 import { PeriodPicker } from './PeriodPicker'
+import { HeatmapPanel } from './HeatmapPanel'
+import { CountriesPanel } from './CountriesPanel'
 import type { DashboardData, Period } from './dashboardTypes'
 
 type Tab =
@@ -136,7 +138,7 @@ export function AnalyticsDashboard({ siteId, siteName, trackingId, isPublic, pub
         loading ? <Skeleton /> : data ? (
           <div className="space-y-6">
             <InsightsPanel insights={data.insights} />
-            <StatsCards totals={data.totals} prevTotals={data.prevTotals} />
+            <StatsCards totals={data.totals} prevTotals={data.prevTotals} chart={data.chart} />
             <EngagementCards cur={data.engagement} prev={data.prevEngagement} />
             <PageviewsChart data={data.chart} period={period} />
             {data.hasImported && (
@@ -176,12 +178,8 @@ export function AnalyticsDashboard({ siteId, siteName, trackingId, isPublic, pub
               <DeviceBreakdown title="Devices" data={data.devices.map((d) => ({ name: d.device_type, value: Number(d.views) }))} />
               <DeviceBreakdown title="Browsers" data={data.browsers.map((b) => ({ name: b.browser, value: Number(b.views) }))} />
             </div>
-            <TopList
-              title="Countries"
-              rows={data.countries.map((c) => ({ label: c.country, value: Number(c.views) }))}
-              total={Number(data.totals.total_views)}
-              emptyMsg="No country data yet — configure a GeoIP database on the tracker"
-            />
+            <HeatmapPanel rows={data.heatmap} />
+            <CountriesPanel rows={data.countries} />
           </div>
         ) : null
       )}

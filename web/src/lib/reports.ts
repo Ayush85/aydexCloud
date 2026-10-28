@@ -77,13 +77,14 @@ export async function getDashboard(site: SiteRef, period: stats.Period) {
   const w = { sid: site.trackingId, days }
   const pw = { ...w, prev: true }
   const [traffic, pages, referrers, channels, aiReferrals, devices, browsers, campaigns, events, countries,
-    eng, prevEng, entryExit, behavior, revenue, insights] = await Promise.all([
+    eng, prevEng, entryExit, behavior, revenue, insights, heatmap] = await Promise.all([
     trafficWithHistory(w),
     stats.pages(w), stats.referrers(w), stats.channels(w), stats.aiReferrals(w),
     stats.devices(w), stats.browsers(w), stats.campaigns(w), stats.events(w), stats.countries(w),
     stats.engagement(w), stats.engagement(pw),
     stats.entryExit(w), stats.behavior(w), stats.revenue(w),
     getInsights(site, days),
+    stats.heatmap(w),
   ])
   const goals = await goalStats(site, w, Number(traffic.totals.unique_visitors))
   return {
@@ -97,14 +98,14 @@ export async function getDashboard(site: SiteRef, period: stats.Period) {
     pages, referrers, channels, aiReferrals, devices, browsers, campaigns, events, countries,
     entryPages: entryExit.entry,
     exitPages: entryExit.exit,
-    behavior, revenue, insights, goals,
+    behavior, revenue, insights, goals, heatmap,
   }
 }
 
 /** Reports addressable by name from the public API / MCP server. */
 export const API_REPORTS = [
   'overview', 'timeseries', 'pages', 'referrers', 'channels', 'ai-referrals', 'countries', 'devices',
-  'browsers', 'campaigns', 'events', 'engagement', 'entry-exit', 'behavior', 'revenue', 'insights', 'funnels',
+  'browsers', 'campaigns', 'events', 'engagement', 'entry-exit', 'behavior', 'revenue', 'insights', 'funnels', 'heatmap',
 ] as const
 export type ApiReport = (typeof API_REPORTS)[number]
 export const isApiReport = (v: string): v is ApiReport => (API_REPORTS as readonly string[]).includes(v)
@@ -132,6 +133,7 @@ export async function getReport(site: SiteRef, report: ApiReport, period: stats.
     case 'behavior': return stats.behavior(w)
     case 'revenue': return stats.revenue(w)
     case 'insights': return getInsights(site, days)
+    case 'heatmap': return stats.heatmap(w)
     case 'funnels': {
       const fs = await prisma.funnel.findMany({ where: { siteId: site.id }, orderBy: { createdAt: 'asc' } })
       return Promise.all(

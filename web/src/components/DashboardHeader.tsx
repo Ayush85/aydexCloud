@@ -3,6 +3,7 @@
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { ThemeToggle } from './ThemeToggle'
+import { Logo } from './Logo'
 
 interface Props {
   breadcrumb?: React.ReactNode
@@ -14,7 +15,7 @@ export function DashboardHeader({ breadcrumb }: Props) {
   return (
     <header className="bg-white dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-800">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-4">
-        <Link href="/dashboard" className="font-bold text-brand-600 shrink-0">aydex.cloud</Link>
+        <Link href="/dashboard" className="shrink-0" aria-label="aydex.cloud dashboard"><Logo size={24} /></Link>
         {breadcrumb && (
           <>
             <span className="text-slate-300 dark:text-zinc-700">/</span>

@@ -69,8 +69,10 @@ export type ChartPoint = { date: string; views: number; visitors: number; import
 
 export async function chart(w: Window): Promise<ChartPoint[]> {
   const { where, params } = base(w)
+  // "Today" is a single day, so bucket by hour or the chart would be one dot.
+  const bucket = w.days === 1 ? 'toStartOfHour(timestamp)' : 'toStartOfDay(timestamp)'
   return runQuery<ChartPoint>(
-    `SELECT toStartOfDay(timestamp) AS date, count() AS views, uniqExact(visitor_hash) AS visitors
+    `SELECT ${bucket} AS date, count() AS views, uniqExact(visitor_hash) AS visitors
      FROM analytics.pageviews WHERE ${where} GROUP BY date ORDER BY date ASC`,
     params
   )
@@ -182,6 +184,16 @@ export async function events(w: Window) {
   return runQuery<{ event_name: string; count: number; unique_visitors: number }>(
     `SELECT event_name, count() AS count, uniqExact(visitor_hash) AS unique_visitors
      FROM analytics.pageviews WHERE ${where} GROUP BY event_name ORDER BY count DESC LIMIT 20`,
+    params
+  )
+}
+
+/** Pageviews by UTC weekday (1=Mon..7=Sun) and hour. The UI shifts to local time. */
+export async function heatmap(w: Window) {
+  const { where, params } = base(w)
+  return runQuery<{ dow: number; hour: number; views: number }>(
+    `SELECT toDayOfWeek(timestamp) AS dow, toHour(timestamp) AS hour, count() AS views
+     FROM analytics.pageviews WHERE ${where} GROUP BY dow, hour ORDER BY dow, hour`,
     params
   )
 }

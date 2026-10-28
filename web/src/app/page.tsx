@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Logo } from '@/components/Logo'
 
 /* ── Icon primitives ─────────────────────────────────────── */
 const Shield = () => (
@@ -233,9 +234,7 @@ export default function LandingPage() {
       <header className="sticky top-0 z-50 border-b border-zinc-800/60 bg-zinc-950/80 backdrop-blur-md">
         <nav className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-8">
-            <span className="text-lg font-bold grad-text bg-gradient-to-r from-white to-zinc-400">
-              aydex.cloud
-            </span>
+            <Logo size={28} tone="on-dark" />
             <div className="hidden items-center gap-6 text-sm text-zinc-400 sm:flex">
               <a href="#features" className="hover:text-white transition-colors">Features</a>
               <a href="#pricing"  className="hover:text-white transition-colors">Pricing</a>
@@ -531,9 +530,7 @@ export default function LandingPage() {
       {/* ── Footer ────────────────────────────────────────── */}
       <footer className="border-t border-zinc-800/60 bg-zinc-900/30">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 py-10 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <span className="text-base font-bold grad-text bg-gradient-to-r from-white to-zinc-500">
-            aydex.cloud
-          </span>
+          <Logo size={24} tone="on-dark" />
           <div className="flex gap-6 text-sm text-zinc-500">
             <a href="#features" className="hover:text-zinc-300 transition-colors">Features</a>
             <a href="#pricing"  className="hover:text-zinc-300 transition-colors">Pricing</a>
