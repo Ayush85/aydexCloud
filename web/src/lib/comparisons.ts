@@ -108,6 +108,135 @@ export const COMPARISONS: Comparison[] = [
       { label: 'Clarity consent management (Microsoft Learn)', url: 'https://learn.microsoft.com/en-us/clarity/setup-and-installation/consent-management' },
     ],
   },
+  {
+    slug: 'plausible',
+    name: 'Plausible',
+    title: 'aydex.cloud vs Plausible Analytics: a cookieless alternative with insights',
+    description:
+      'Compare aydex.cloud and Plausible Analytics: cookies, hosting, self-hosting, behavior signals, AI-assistant traffic, revenue attribution and API. See where Plausible is the better fit.',
+    intro:
+      'Plausible is a well-known, cookieless, open-source analytics tool hosted in the EU. aydex.cloud shares the privacy-first approach and adds explanations of why traffic changed, behavior signals without recordings, AI-assistant traffic and an MCP server.',
+    rows: [
+      { feature: 'Cookies', aydex: 'None by default; an optional encrypted visitor ID if you enable it.', them: 'Plausible states it uses no cookies or other persistent identifiers.' },
+      { feature: 'Open source / self-hosting', aydex: 'Self-hostable with Docker Compose (Next.js, Go collector, ClickHouse, Postgres, Redis).', them: 'Open source with the code on GitHub, and can be self-hosted.' },
+      { feature: 'Data location', aydex: 'Wherever you host it. The hosted service runs on our own server.', them: 'Servers in Falkenstein, Germany (Hetzner); company incorporated in Estonia.' },
+      { feature: 'Explains why traffic changed', aydex: 'Yes: dashboard, weekly email, API and MCP, computed from your numbers.', them: 'Not covered on the pages we reviewed.' },
+      { feature: 'Frustration signals (rage clicks, dead clicks, JS errors)', aydex: 'Yes, as counts with a selector or scrubbed message. No recordings.', them: 'Not covered on the pages we reviewed.' },
+      { feature: 'AI-assistant traffic as its own channel', aydex: 'Yes: ChatGPT, Perplexity, Claude, Gemini, Copilot and others.', them: 'Not covered on the pages we reviewed.' },
+      { feature: 'Revenue by source', aydex: 'One line: aydex.track("purchase", { revenue: 49 }).', them: 'Not covered on the pages we reviewed.' },
+      { feature: 'Import from Google Analytics', aydex: 'GA4 daily CSV import.', them: 'Check their documentation.' },
+      { feature: 'Price', aydex: 'Free plan up to 10,000 pageviews/month; paid plans from $7.', them: 'See their pricing page.' },
+    ],
+    themWins: [
+      'You want the simplest possible dashboard from a mature, widely used product.',
+      'EU hosting under an EU-incorporated company matters for your compliance story.',
+      'You prefer a long-established open-source community around the tool.',
+    ],
+    aydexWins: [
+      'You want the dashboard to tell you why traffic changed, not just chart it.',
+      'You want rage clicks, dead clicks and JS errors without recording sessions.',
+      'You want to see how much traffic AI assistants send you.',
+      'You want a REST API and MCP server for AI assistants on every plan.',
+    ],
+    switching: [
+      'Add the aydex snippet beside Plausible and compare for a week.',
+      'Import GA4 history if you have it, so trends carry over.',
+      'Plausible is cookieless too, so removing it needs no change to your consent setup.',
+    ],
+    faqs: [
+      { q: 'Is aydex.cloud cookieless like Plausible?', a: 'Yes. By default the aydex script stores nothing on the visitor’s device. You can verify the served script on the privacy proof page.' },
+      { q: 'Can I self-host aydex.cloud?', a: 'Yes, with Docker Compose. You run the web app, the Go collector, ClickHouse, Postgres and Redis yourself.' },
+      { q: 'Which is simpler?', a: 'Plausible is deliberately minimal. aydex has more reports (funnels, behavior, revenue, insights), so its dashboard has more tabs.' },
+    ],
+    sources: [
+      { label: 'Plausible: privacy-focused web analytics', url: 'https://ingest.plausible.io/privacy-focused-web-analytics' },
+    ],
+  },
+  {
+    slug: 'fathom',
+    name: 'Fathom Analytics',
+    title: 'aydex.cloud vs Fathom Analytics: privacy-first analytics compared',
+    description:
+      'Compare aydex.cloud and Fathom Analytics: cookies, visitor counting, EU data handling, self-hosting, behavior signals, AI traffic, revenue and API. See where Fathom is the stronger choice.',
+    intro:
+      'Fathom is a long-running privacy-focused analytics service with an EU data isolation feature. aydex.cloud takes a similar cookieless approach and adds traffic explanations, behavior signals without recordings, AI-assistant traffic and an MCP server, and it can be self-hosted.',
+    rows: [
+      { feature: 'Cookies', aydex: 'None by default; optional encrypted visitor ID.', them: 'Fathom describes itself as having no cookies, so no consent banner for analytics.' },
+      { feature: 'Visitor counting', aydex: 'Daily-rotating hash of site, day, IP and user agent.', them: 'Site-specific signatures from request data, with daily salt rotation.' },
+      { feature: 'EU data handling', aydex: 'Your choice of region if you self-host.', them: 'A dedicated EU data isolation feature.' },
+      { feature: 'Self-hosting', aydex: 'Yes, with Docker Compose.', them: 'Not mentioned on the pages we reviewed.' },
+      { feature: 'Explains why traffic changed', aydex: 'Yes: dashboard, weekly email, API and MCP.', them: 'Not covered on the pages we reviewed.' },
+      { feature: 'Frustration signals (rage/dead clicks, JS errors)', aydex: 'Yes, as counts. No recordings.', them: 'Not covered on the pages we reviewed.' },
+      { feature: 'AI-assistant traffic as its own channel', aydex: 'Yes.', them: 'Not covered on the pages we reviewed.' },
+      { feature: 'API and email reports', aydex: 'REST API and MCP on every plan; weekly email digest.', them: 'API and email reports are listed among its features.' },
+      { feature: 'Price', aydex: 'Free plan up to 10,000 pageviews/month; paid plans from $7.', them: 'See their pricing page (they list a free trial).' },
+    ],
+    themWins: [
+      'You want a mature hosted product with a dedicated EU isolation feature.',
+      'You want a vendor with a long track record and a data processing agreement ready.',
+      'You do not want to think about self-hosting at all.',
+    ],
+    aydexWins: [
+      'You want the option to self-host and keep data on your own infrastructure.',
+      'You want explanations of traffic changes and behavior signals without recordings.',
+      'You want to measure AI-assistant traffic and query it through an API or MCP.',
+    ],
+    switching: [
+      'Run the aydex snippet next to Fathom for a week.',
+      'Import GA4 history if you have it to extend your trend lines.',
+      'Both are cookieless, so your consent setup does not change.',
+    ],
+    faqs: [
+      { q: 'Does aydex have an EU data isolation feature?', a: 'aydex does not offer a separate isolation feature. If EU-only storage matters, self-host it in an EU region or choose a vendor that provides that isolation.' },
+      { q: 'Is aydex cookieless like Fathom?', a: 'Yes. By default the script stores nothing on the visitor’s device; verify it on the privacy proof page.' },
+      { q: 'Can I migrate from Fathom?', a: 'Install the aydex snippet and run both in parallel. aydex imports Google Analytics CSVs; it does not import Fathom exports.' },
+    ],
+    sources: [
+      { label: 'Fathom: GDPR-compliant analytics', url: 'https://usefathom.com/why-fathom-analytics/gdpr-compliant-analytics' },
+    ],
+  },
+  {
+    slug: 'umami',
+    name: 'Umami',
+    title: 'aydex.cloud vs Umami: self-hostable analytics compared',
+    description:
+      'Compare aydex.cloud and Umami: open source, self-hosting stack, cookies, behavior signals, AI-assistant traffic, revenue attribution and API. See where Umami is the better pick.',
+    intro:
+      'Umami is a popular open-source, self-hostable analytics tool. aydex.cloud is also self-hostable and privacy-first, and focuses on explaining traffic changes, behavior signals without recordings, AI-assistant traffic and revenue by source.',
+    rows: [
+      { feature: 'Open source / self-hosting', aydex: 'Self-hostable with Docker Compose (Next.js, Go collector, ClickHouse, Postgres, Redis).', them: 'Open source and self-hostable per its documentation; a hosted cloud version also exists.' },
+      { feature: 'Cookies', aydex: 'None by default.', them: 'Marketed as cookieless; confirm in its documentation for your setup.' },
+      { feature: 'Self-hosting footprint', aydex: 'Heavier: ClickHouse and Redis alongside Postgres.', them: 'Lighter to operate for small sites.' },
+      { feature: 'Explains why traffic changed', aydex: 'Yes: dashboard, weekly email, API and MCP.', them: 'Not covered on the pages we reviewed.' },
+      { feature: 'Frustration signals (rage/dead clicks, JS errors)', aydex: 'Yes, as counts. No recordings.', them: 'Not covered on the pages we reviewed.' },
+      { feature: 'AI-assistant traffic as its own channel', aydex: 'Yes.', them: 'Not covered on the pages we reviewed.' },
+      { feature: 'Revenue by source', aydex: 'One tracking call.', them: 'Check their documentation.' },
+      { feature: 'Import from Google Analytics', aydex: 'GA4 daily CSV import.', them: 'Check their documentation.' },
+      { feature: 'Price', aydex: 'Free plan up to 10,000 pageviews/month; paid plans from $7.', them: 'Free to self-host; see their site for cloud pricing.' },
+    ],
+    themWins: [
+      'You want the lightest possible self-hosted setup.',
+      'You want a large open-source community and a lot of third-party guides.',
+      'You mainly need a simple dashboard for a few sites.',
+    ],
+    aydexWins: [
+      'You want a managed service as well as the option to self-host.',
+      'You want explanations of traffic changes and behavior signals without recordings.',
+      'You want AI-assistant traffic, revenue by source and an MCP server built in.',
+    ],
+    switching: [
+      'Install the aydex snippet next to Umami and compare for a week.',
+      'Import GA4 history if you have it so trends continue.',
+      'Both are privacy-first, so your consent setup stays the same.',
+    ],
+    faqs: [
+      { q: 'Which is easier to self-host?', a: 'Umami has a lighter footprint. aydex needs ClickHouse and Redis as well as Postgres, which is what lets it answer heavier questions quickly at scale.' },
+      { q: 'Can I use aydex without self-hosting?', a: 'Yes. aydex.cloud is a hosted service with a free plan, and you can self-host later if you want.' },
+    ],
+    sources: [
+      { label: 'Umami documentation (third-party mirror)', url: 'https://www.mintlify.com/umami-software/umami' },
+    ],
+  },
 ]
 
 export const bySlug = (slug: string) => COMPARISONS.find((c) => c.slug === slug)

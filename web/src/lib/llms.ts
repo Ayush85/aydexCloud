@@ -27,6 +27,7 @@ ${SITE_NAME} is ${SITE_TAGLINE.toLowerCase()}. Last updated ${CONTENT_UPDATED}.
 ## Key pages
 
 - [What is ${SITE_NAME}?](${SITE_URL}/about): product definition, features, pricing and facts
+- [Compare with other tools](${SITE_URL}/vs): honest comparisons including where each tool is better
 - [Pricing](${SITE_URL}/#pricing): plans from free to agency
 - [Privacy proof](${SITE_URL}/privacy-proof): live checks of the exact tracking script served to visitors
 ${COMPARISONS.map((c) => `- [${SITE_NAME} vs ${c.name}](${SITE_URL}/vs/${c.slug}): ${c.description}`).join('\n')}
