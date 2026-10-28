@@ -14,6 +14,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
 FROM node:22-alpine AS runner
+# Fail the build on Node 22 with the Brotli decoder flaw (CVE-2026-111497); fixed in 22.23.4+.
+RUN node -e "const [a,b,c]=process.versions.node.split('.').map(Number);if(a===22&&(b<23||(b===23&&c<4))){console.error('Node '+process.versions.node+' is vulnerable; rebuild with --pull');process.exit(1)}"
 WORKDIR /app
 
 RUN apk add --no-cache libc6-compat openssl
