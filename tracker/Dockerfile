@@ -6,6 +6,8 @@ RUN apk add --no-cache git ca-certificates
 
 COPY go.mod ./
 COPY *.go ./
+COPY script.js ./
+COPY internal ./internal
 
 ENV GOFLAGS="-mod=mod"
 RUN go mod download && go build -ldflags="-s -w" -o tracker .
