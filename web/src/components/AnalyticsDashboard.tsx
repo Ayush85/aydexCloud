@@ -8,6 +8,7 @@ import { DeviceBreakdown } from './DeviceBreakdown'
 import { LiveBadge } from './LiveBadge'
 import { CampaignsTable } from './CampaignsTable'
 import { SharePanel } from './SharePanel'
+import { InstallCheck } from './InstallCheck'
 import { CustomCharts } from './CustomCharts'
 import { DataStorageInfo } from './DataStorageInfo'
 import { EncryptionPanel } from './EncryptionPanel'
@@ -33,6 +34,7 @@ type Tab =
 interface Props {
   siteId: string
   siteName: string
+  domain: string
   trackingId: string
   isPublic: boolean
   publicToken: string | null
@@ -69,7 +71,7 @@ function Skeleton() {
   )
 }
 
-export function AnalyticsDashboard({ siteId, siteName, trackingId, isPublic, publicToken, alertsEnabled, alertsAllowed, webhook }: Props) {
+export function AnalyticsDashboard({ siteId, siteName, domain, trackingId, isPublic, publicToken, alertsEnabled, alertsAllowed, webhook }: Props) {
   const [period, setPeriod] = useState<Period>('7d')
   const [tab, setTab]       = useState<Tab>('overview')
   const [data, setData]     = useState<DashboardData | null>(null)
@@ -236,6 +238,7 @@ export function AnalyticsDashboard({ siteId, siteName, trackingId, isPublic, pub
       {/* ── Share, API & Import ──────────────────────────── */}
       {tab === 'share' && (
         <div className="mt-4 space-y-6">
+          <InstallCheck siteId={siteId} domain={domain} />
           <SharePanel siteId={siteId} initialIsPublic={isPublic} initialPublicToken={publicToken} />
           <ImportPanel siteId={siteId} />
           <div className="card p-5 text-sm text-slate-600 dark:text-zinc-400 space-y-2">

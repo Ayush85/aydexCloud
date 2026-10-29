@@ -23,6 +23,7 @@ export function DashboardHeader({ breadcrumb }: Props) {
           </>
         )}
         <div className="ml-auto flex items-center gap-4 text-sm text-slate-500 dark:text-zinc-400">
+          <Link href="/docs" className="hover:text-slate-900 dark:hover:text-zinc-100 hidden sm:inline">Help</Link>
           <Link href="/dashboard/billing" className="hover:text-slate-900 dark:hover:text-zinc-100 hidden sm:inline">Billing</Link>
           <Link href="/dashboard/settings/api-keys" className="hover:text-slate-900 dark:hover:text-zinc-100 hidden sm:inline">API keys</Link>
           <ThemeToggle />

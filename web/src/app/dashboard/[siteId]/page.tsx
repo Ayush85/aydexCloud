@@ -48,6 +48,7 @@ export default async function SiteAnalyticsPage({
         <AnalyticsDashboard
           siteId={site.id}
           siteName={site.name}
+          domain={site.domain}
           trackingId={site.trackingId}
           isPublic={site.isPublic}
           publicToken={site.publicToken}

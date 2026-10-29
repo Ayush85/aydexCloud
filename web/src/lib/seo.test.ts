@@ -32,7 +32,8 @@ describe('seo', () => {
     const urls = sitemap().map((e) => e.url)
     expect(urls.some((u) => u.endsWith('/'))).toBe(true)
     COMPARISONS.forEach((c) => expect(urls.some((u) => u.endsWith(`/vs/${c.slug}`))).toBe(true))
-    expect(urls.join(' ')).not.toMatch(/dashboard|\/api\/|share/)
+    // Private areas only: match them as path segments (docs pages may legitimately mention the word "dashboard").
+    expect(urls.filter((u) => /^\/(dashboard|api|share)(\/|$)/.test(new URL(u).pathname))).toEqual([])
   })
 
   it('robots blocks private areas and points at the sitemap', () => {
@@ -53,7 +54,8 @@ describe('geo / llms.txt', () => {
     expect(t).toMatch(/^> .+/m)
     expect(t).toContain('/about')
     COMPARISONS.forEach((c) => expect(t).toContain(`/vs/${c.slug}`))
-    expect(t).not.toMatch(/dashboard|\/api\//)
+    const linked = Array.from(t.matchAll(/\]\((https?:\/\/[^)\s]+)\)/g)).map((m) => new URL(m[1]).pathname)
+    expect(linked.filter((p) => /^\/(dashboard|api|share)(\/|$)/.test(p))).toEqual([])
   })
 
   it('llms-full.txt carries current pricing, all FAQs and comparisons', () => {
@@ -84,5 +86,27 @@ describe('guides', () => {
       expect(urls.some((u) => u.endsWith(`/guides/${g.slug}`))).toBe(true)
       expect(llmsTxt()).toContain(`/guides/${g.slug}`)
     }
+  })
+})
+
+describe('user guide', () => {
+  it('has unique slugs, content on every page, and valid table rows', async () => {
+    const { DOCS, DOC_GROUPS } = await import('./docs')
+    expect(new Set(DOCS.map((d) => d.slug)).size).toBe(DOCS.length)
+    for (const d of DOCS) {
+      expect(DOC_GROUPS).toContain(d.group)
+      expect(d.title.length).toBeGreaterThan(3)
+      expect(d.description.length).toBeGreaterThan(30)
+      expect(d.blocks.length).toBeGreaterThan(0)
+      for (const b of d.blocks) if (b.t === 'table') for (const r of b.rows) expect(r.length).toBe(b.head.length)
+    }
+  })
+  it('plans table matches PLANS and llms.txt lists the docs', async () => {
+    const { DOCS } = await import('./docs')
+    const { PLANS } = await import('./plans')
+    const plans = DOCS.find((d) => d.slug === 'plans-and-limits')!.blocks.find((b) => b.t === 'table') as { rows: string[][] }
+    expect(plans.rows.map((r) => r[0])).toEqual(Object.values(PLANS).map((p) => p.label))
+    const { llmsTxt } = await import('./llms')
+    expect(llmsTxt()).toContain('/docs/getting-started')
   })
 })
