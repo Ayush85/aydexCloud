@@ -1,5 +1,7 @@
 (function () {
   'use strict';
+  // Analytics must never break or slow the host page: anything unexpected is swallowed.
+  try {
   var d = document, w = window, nav = navigator;
   var s = d.currentScript || d.querySelector('script[data-site]');
   if (!s) return;
@@ -126,16 +128,19 @@
 
   // Deepest scroll position, in 5% steps.
   var scrollTimer = 0;
+  function later(fn) { if (w.requestAnimationFrame) w.requestAnimationFrame(fn); else setTimeout(fn, 0); }
   function readScroll() {
     scrollTimer = 0;
+    try {
     var de = d.documentElement, b = d.body;
     var h = Math.max(de.scrollHeight || 0, b ? b.scrollHeight : 0);
     var y = (w.pageYOffset || de.scrollTop || 0) + (w.innerHeight || de.clientHeight || 0);
     if (h > 0) { var pc = Math.min(100, Math.round(y / h * 20) * 5); if (pc > page.scroll) page.scroll = pc; }
+    } catch (e) { /* ignore */ }
   }
-  function onScroll() { if (!scrollTimer) scrollTimer = setTimeout(readScroll, 150); }
+  function onScroll() { if (!scrollTimer) scrollTimer = setTimeout(function () { later(readScroll); }, 150); }
   w.addEventListener('scroll', onScroll, { passive: true });
-  setTimeout(readScroll, 500);
+  setTimeout(function () { later(readScroll); }, 500);
 
   // ── Behavior signals: counted, never recorded. No text, no screenshots, no keystrokes. ──
   function interactive(el) {
@@ -189,6 +194,9 @@
 
   if (behavior) {
     d.addEventListener('click', function (e) {
+      try { onClick(e); } catch (err) { /* ignore */ }
+    }, true);
+    function onClick(e) {
       var t = e.target;
       if (!t || !t.tagName) return;
       if (t.closest && t.closest('[data-aydex-ignore]')) return;
@@ -220,7 +228,7 @@
           }
         } catch (err) { /* malformed href */ }
       }
-    }, true);
+    }
 
     w.addEventListener('error', function (e) {
       if (page.err >= 5 || !e || !e.message || e.message === 'Script error.') return;
@@ -244,4 +252,5 @@
       send(String(name).slice(0, 64), props);
     }
   };
+  } catch (e) { /* never surface errors to the host page */ }
 })();

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"crypto/sha256"
 	"crypto/tls"
@@ -204,16 +206,53 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("ok"))
 }
 
+// scriptGzip / scriptETag are computed once at startup. The script is served readable (not minified) so
+// /privacy-proof and visitors can audit exactly what runs; gzip alone takes it from ~11 KiB to ~4 KiB.
+var (
+	scriptGzip []byte
+	scriptETag string
+)
+
+func init() {
+	sum := sha256.Sum256([]byte(trackingScript))
+	scriptETag = `"` + hex.EncodeToString(sum[:8]) + `"`
+	var b bytes.Buffer
+	zw, _ := gzip.NewWriterLevel(&b, gzip.BestCompression)
+	zw.Write([]byte(trackingScript))
+	zw.Close()
+	scriptGzip = b.Bytes()
+}
+
 func handleScript(w http.ResponseWriter, r *http.Request) {
+	h := w.Header()
+	h.Set("Access-Control-Allow-Origin", "*")
 	if r.Method == http.MethodOptions {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
-	w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
-	w.Header().Set("Cache-Control", "public, max-age=3600")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Write([]byte(trackingScript))
+	h.Set("Content-Type", "application/javascript; charset=utf-8")
+	h.Set("X-Content-Type-Options", "nosniff")
+	h.Set("Vary", "Accept-Encoding")
+	h.Set("ETag", scriptETag)
+	// One day fresh, then serve the cached copy while revalidating in the background (and keep serving it
+	// if this server is down), so the script can never delay or break a customer's page.
+	h.Set("Cache-Control", "public, max-age=86400, stale-while-revalidate=604800, stale-if-error=604800")
+	if r.Header.Get("If-None-Match") == scriptETag {
+		w.WriteHeader(http.StatusNotModified)
+		return
+	}
+	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+		h.Set("Content-Encoding", "gzip")
+		h.Set("Content-Length", strconv.Itoa(len(scriptGzip)))
+		if r.Method != http.MethodHead {
+			w.Write(scriptGzip)
+		}
+		return
+	}
+	h.Set("Content-Length", strconv.Itoa(len(trackingScript)))
+	if r.Method != http.MethodHead {
+		w.Write([]byte(trackingScript))
+	}
 }
 
 func handleCollect(w http.ResponseWriter, r *http.Request) {
