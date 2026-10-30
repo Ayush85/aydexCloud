@@ -59,22 +59,22 @@ function SignUpForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4 dark:bg-zinc-950">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex"><Logo size={36} /></Link>
-          <p className="mt-2 text-slate-500 text-sm">Create your free account</p>
+          <p className="mt-2 text-slate-500 text-sm dark:text-zinc-400">Create your free account</p>
         </div>
 
         <div className="card p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="bg-red-50 text-red-700 text-sm px-3 py-2 rounded-lg border border-red-100">
+              <div className="bg-red-50 text-red-700 text-sm px-3 py-2 rounded-lg border border-red-100 dark:bg-red-950/40 dark:text-red-300 dark:border-red-900">
                 {error}
               </div>
             )}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1 dark:text-zinc-300">Name</label>
               <input
                 type="text"
                 className="input"
@@ -85,7 +85,7 @@ function SignUpForm() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1 dark:text-zinc-300">Email</label>
               <input
                 type="email"
                 className="input"
@@ -96,7 +96,7 @@ function SignUpForm() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1 dark:text-zinc-300">Password</label>
               <input
                 type="password"
                 className="input"
@@ -113,7 +113,7 @@ function SignUpForm() {
           </form>
         </div>
 
-        <p className="text-center mt-4 text-sm text-slate-500">
+        <p className="text-center mt-4 text-sm text-slate-500 dark:text-zinc-400">
           Already have an account?{' '}
           <Link href="/auth/signin" className="text-brand-600 font-medium hover:underline">
             Sign in

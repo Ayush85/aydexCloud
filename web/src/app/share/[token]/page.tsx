@@ -49,20 +49,20 @@ export default function SharePage({ params }: { params: { token: string } }) {
   ]
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200">
+    <div className="min-h-screen bg-slate-50 dark:bg-zinc-950">
+      <header className="bg-white border-b border-slate-200 dark:bg-zinc-900 dark:border-zinc-800">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
             {data && (
               <>
-                <span className="font-semibold text-slate-900">{data.site.name}</span>
-                <span className="text-slate-300">/</span>
-                <span className="text-slate-500 text-sm">{data.site.domain}</span>
+                <span className="font-semibold text-slate-900 dark:text-zinc-100">{data.site.name}</span>
+                <span className="text-slate-300 dark:text-zinc-700">/</span>
+                <span className="text-slate-500 text-sm dark:text-zinc-400">{data.site.domain}</span>
               </>
             )}
           </div>
           <div className="flex items-center gap-3 text-sm">
-            <span className="text-slate-400 text-xs bg-slate-100 px-2 py-1 rounded-full">Public dashboard</span>
+            <span className="text-slate-400 text-xs bg-slate-100 px-2 py-1 rounded-full dark:text-zinc-500 dark:bg-zinc-800">Public dashboard</span>
             <Link href="/" className="text-brand-600 font-medium hover:underline">aydex.cloud</Link>
           </div>
         </div>
@@ -71,21 +71,21 @@ export default function SharePage({ params }: { params: { token: string } }) {
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
         {error ? (
           <div className="card p-12 text-center">
-            <p className="text-slate-500">{error}</p>
+            <p className="text-slate-500 dark:text-zinc-400">{error}</p>
           </div>
         ) : (
           <>
             <div className="flex items-center justify-between mb-6">
-              <h1 className="text-xl font-bold text-slate-900">
+              <h1 className="text-xl font-bold text-slate-900 dark:text-zinc-100">
                 {data ? `${data.site.name} — Analytics` : 'Loading…'}
               </h1>
-              <div className="flex gap-1 bg-white border border-slate-200 rounded-lg p-1">
+              <div className="flex gap-1 bg-white border border-slate-200 rounded-lg p-1 dark:bg-zinc-900 dark:border-zinc-800">
                 {periods.map((p) => (
                   <button
                     key={p.key}
                     onClick={() => setPeriod(p.key)}
                     className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                      period === p.key ? 'bg-brand-600 text-white' : 'text-slate-600 hover:text-slate-900'
+                      period === p.key ? 'bg-brand-600 text-white' : 'text-slate-600 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-zinc-100'
                     }`}
                   >
                     {p.label}
@@ -97,9 +97,9 @@ export default function SharePage({ params }: { params: { token: string } }) {
             {loading ? (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  {[1, 2].map((i) => <div key={i} className="card p-6 h-24 animate-pulse bg-slate-100" />)}
+                  {[1, 2].map((i) => <div key={i} className="card p-6 h-24 animate-pulse bg-slate-100 dark:bg-zinc-800" />)}
                 </div>
-                <div className="card p-6 h-64 animate-pulse bg-slate-100" />
+                <div className="card p-6 h-64 animate-pulse bg-slate-100 dark:bg-zinc-800" />
               </div>
             ) : data ? (
               <div className="space-y-6">
