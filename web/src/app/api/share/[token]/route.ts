@@ -1,3 +1,4 @@
+import { clientIp, overLimit } from '@/lib/security'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { ch } from '@/lib/clickhouse'
@@ -14,6 +15,10 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { token: string } }
 ) {
+  // Unauthenticated and runs several ClickHouse queries, so cap it per client.
+  if (await overLimit(`share:${clientIp(req.headers)}`, 60, 60)) {
+    return NextResponse.json({ error: 'Too many requests.' }, { status: 429 })
+  }
   const site = await prisma.site.findFirst({
     where: { publicToken: params.token, isPublic: true },
   })

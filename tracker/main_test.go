@@ -1,8 +1,14 @@
 package main
 
 import (
+	"bytes"
+	"compress/gzip"
+	"io"
 	"net/http"
+	"net/http/httptest"
 	"os"
+	"strconv"
+	"strings"
 	"testing"
 )
 
@@ -10,9 +16,9 @@ func TestCleanReferrer(t *testing.T) {
 	cases := map[string]string{
 		"":                                      "",
 		"https%3A%2F%2Fwww.google.com%2Fsearch": "google.com",
-		"https%3A%2F%2Ftwitter.com%2Fhome":       "twitter.com",
-		"not a url":                              "",
-		"%zz":                                    "", // invalid percent-encoding
+		"https%3A%2F%2Ftwitter.com%2Fhome":      "twitter.com",
+		"not a url":                             "",
+		"%zz":                                   "", // invalid percent-encoding
 	}
 	for in, want := range cases {
 		if got := cleanReferrer(in); got != want {
@@ -78,5 +84,62 @@ func TestShouldDrop(t *testing.T) {
 		if got := shouldDrop(c.count, c.limit); got != c.want {
 			t.Errorf("shouldDrop(%d, %d) = %v, want %v", c.count, c.limit, got, c.want)
 		}
+	}
+}
+
+func TestHandleScript(t *testing.T) {
+	// Plain request: readable script, one-day cache with stale-while-revalidate, ETag, nosniff.
+	rec := httptest.NewRecorder()
+	handleScript(rec, httptest.NewRequest("GET", "/script.js", nil))
+	if rec.Code != 200 || rec.Body.String() != trackingScript {
+		t.Fatalf("plain: code=%d, body matches=%v", rec.Code, rec.Body.String() == trackingScript)
+	}
+	cc := rec.Header().Get("Cache-Control")
+	if !strings.Contains(cc, "max-age=86400") || !strings.Contains(cc, "stale-while-revalidate") {
+		t.Errorf("Cache-Control = %q", cc)
+	}
+	if rec.Header().Get("ETag") == "" || rec.Header().Get("X-Content-Type-Options") != "nosniff" || rec.Header().Get("Vary") != "Accept-Encoding" {
+		t.Errorf("missing ETag/nosniff/Vary: %v", rec.Header())
+	}
+
+	// gzip: smaller, correct Content-Length, decompresses to the exact script.
+	req := httptest.NewRequest("GET", "/script.js", nil)
+	req.Header.Set("Accept-Encoding", "gzip, br")
+	rec = httptest.NewRecorder()
+	handleScript(rec, req)
+	if rec.Header().Get("Content-Encoding") != "gzip" {
+		t.Fatalf("expected gzip, got %q", rec.Header().Get("Content-Encoding"))
+	}
+	if rec.Header().Get("Content-Length") != strconv.Itoa(rec.Body.Len()) || rec.Body.Len() >= len(trackingScript)/2 {
+		t.Errorf("gzip size %d vs raw %d, Content-Length %s", rec.Body.Len(), len(trackingScript), rec.Header().Get("Content-Length"))
+	}
+	zr, err := gzip.NewReader(bytes.NewReader(rec.Body.Bytes()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, _ := io.ReadAll(zr)
+	if string(got) != trackingScript {
+		t.Error("gzip body does not round-trip")
+	}
+
+	// Conditional request: 304 with no body.
+	req = httptest.NewRequest("GET", "/script.js", nil)
+	req.Header.Set("If-None-Match", scriptETag)
+	rec = httptest.NewRecorder()
+	handleScript(rec, req)
+	if rec.Code != http.StatusNotModified || rec.Body.Len() != 0 {
+		t.Errorf("304: code=%d body=%d", rec.Code, rec.Body.Len())
+	}
+
+	// HEAD sends headers only; OPTIONS answers CORS preflight.
+	rec = httptest.NewRecorder()
+	handleScript(rec, httptest.NewRequest("HEAD", "/script.js", nil))
+	if rec.Body.Len() != 0 {
+		t.Error("HEAD returned a body")
+	}
+	rec = httptest.NewRecorder()
+	handleScript(rec, httptest.NewRequest("OPTIONS", "/script.js", nil))
+	if rec.Code != http.StatusNoContent || rec.Header().Get("Access-Control-Allow-Origin") != "*" {
+		t.Errorf("OPTIONS: %d %v", rec.Code, rec.Header())
 	}
 }

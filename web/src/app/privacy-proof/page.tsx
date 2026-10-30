@@ -2,7 +2,11 @@ import Link from 'next/link'
 import { analyzeScript } from '@/lib/privacyProof'
 
 export const revalidate = 300
-export const metadata = { title: 'Privacy proof — aydex.cloud' }
+export const metadata = {
+  title: 'Privacy proof: verify what the tracking script does',
+  description: 'Live checks on the exact aydex.cloud tracking script: SHA-256 hash, no cookies, no fingerprinting, no session recording, and exactly which fields leave the browser.',
+  alternates: { canonical: '/privacy-proof' },
+}
 
 const trackerUrl = process.env.NEXT_PUBLIC_TRACKER_URL ?? 'http://localhost:3001'
 

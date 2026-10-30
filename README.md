@@ -20,6 +20,7 @@ Privacy-first web analytics: cookieless by default, no recordings, and built to 
 - **Public REST API on every plan** and an **MCP server** (`mcp/README.md`).
 - **Ad-block resistance** — serve script and collector from your own domain (nginx / Caddy / Next.js recipes in the dashboard) with `data-endpoint`.
 - **GA4 history import** — upload a GA4 daily CSV; it fills only dates before your first aydex pageview.
+- **User guide** at `/docs` (15 pages), a free **UTM link builder** at `/tools/utm-builder`, an **install verifier** (SSRF-safe homepage check + data-received check), and an embeddable **visitor badge** (`/api/badge/<public token>`) for public sites.
 - **Verifiable privacy** — `/privacy-proof` hashes and statically checks the exact script served to visitors.
 
 ## Tracking snippet

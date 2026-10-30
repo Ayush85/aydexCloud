@@ -25,3 +25,15 @@ Notes
 - **API keys:** the REST API and MCP server are now available on every plan; keys are rate limited to 120 requests/minute.
 - **Rollback:** `git checkout deploy/self-hosted && docker compose up -d --build web tracker`. The extra table and ClickHouse rows are harmless to the old version.
 - **Quick check after deploy:** open a tracked page, wait ~10 s, then in the dashboard Overview confirm *Avg. time on page* fills in; `curl -s https://t.aydex.cloud/script.js | sha256sum` should match `/privacy-proof`.
+
+## Growth release (alerts, webhooks, annotations, install guides)
+
+```bash
+cd ~/aydexCloud && git pull
+docker compose up -d --build web tracker
+docker compose exec web npx prisma db push      # adds annotations table + site alert/webhook columns (non-destructive)
+docker compose up -d --force-recreate cron      # picks up the new daily alerts line in ops/crontab
+```
+
+- Traffic alerts need the Pro or Agency plan. Slack/Discord webhooks work on every plan.
+- Alerts skip sites with under ~20 pageviews/day (too little signal).

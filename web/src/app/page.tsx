@@ -1,5 +1,9 @@
 import Link from 'next/link'
 import { Logo } from '@/components/Logo'
+import { JsonLd } from '@/components/JsonLd'
+import { FAQS } from '@/lib/faq'
+import { PLANS } from '@/lib/plans'
+import { SITE_URL, SITE_NAME, SITE_DESCRIPTION } from '@/lib/site'
 
 /* ── Icon primitives ─────────────────────────────────────── */
 const Shield = () => (
@@ -226,9 +230,47 @@ const plans = [
 ]
 
 /* ── Page ────────────────────────────────────────────────── */
+const landingJsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: SITE_NAME,
+    url: SITE_URL,
+    logo: `${SITE_URL}/icon.svg`,
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: SITE_NAME,
+    url: SITE_URL,
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: SITE_NAME,
+    url: SITE_URL,
+    applicationCategory: 'BusinessApplication',
+    operatingSystem: 'Web',
+    description: SITE_DESCRIPTION,
+    offers: Object.values(PLANS).map((p) => ({
+      '@type': 'Offer',
+      name: p.label,
+      price: String(p.price),
+      priceCurrency: 'USD',
+      url: `${SITE_URL}/#pricing`,
+    })),
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: FAQS.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
+  },
+]
+
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-zinc-950 text-white selection:bg-indigo-500/30">
+      <JsonLd data={landingJsonLd} />
 
       {/* ── Nav ───────────────────────────────────────────── */}
       <header className="sticky top-0 z-50 border-b border-zinc-800/60 bg-zinc-950/80 backdrop-blur-md">
@@ -503,6 +545,25 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── FAQ ───────────────────────────────────────────── */}
+      <section id="faq" className="mx-auto max-w-3xl px-4 pb-28 sm:px-6" aria-labelledby="faq-title">
+        <div className="mb-10 text-center">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-zinc-500">FAQ</p>
+          <h2 id="faq-title" className="text-3xl font-bold">Questions, answered straight</h2>
+        </div>
+        <div className="divide-y divide-zinc-800 rounded-2xl border border-zinc-800 bg-zinc-900/40">
+          {FAQS.map((f) => (
+            <details key={f.q} className="group px-6 py-4">
+              <summary className="cursor-pointer list-none font-medium text-zinc-100 flex justify-between gap-4">
+                {f.q}
+                <span className="text-zinc-500 group-open:rotate-45 transition-transform">+</span>
+              </summary>
+              <p className="mt-2 text-sm text-zinc-400">{f.a}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+
       {/* ── Final CTA ─────────────────────────────────────── */}
       <section className="mx-auto max-w-6xl px-4 pb-28 sm:px-6">
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700 p-14 text-center">
@@ -534,6 +595,11 @@ export default function LandingPage() {
           <div className="flex gap-6 text-sm text-zinc-500">
             <a href="#features" className="hover:text-zinc-300 transition-colors">Features</a>
             <a href="#pricing"  className="hover:text-zinc-300 transition-colors">Pricing</a>
+            <Link href="/about" className="hover:text-zinc-300 transition-colors">About</Link>
+            <Link href="/vs" className="hover:text-zinc-300 transition-colors">Compare</Link>
+            <Link href="/docs" className="hover:text-zinc-300 transition-colors">User guide</Link>
+            <Link href="/guides" className="hover:text-zinc-300 transition-colors">Guides</Link>
+            <Link href="/tools/utm-builder" className="hover:text-zinc-300 transition-colors">UTM builder</Link>
             <Link href="/privacy-proof" className="hover:text-zinc-300 transition-colors">Privacy proof</Link>
             <Link href="/auth/signup" className="hover:text-zinc-300 transition-colors">Sign up</Link>
           </div>

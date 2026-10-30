@@ -8,6 +8,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   CartesianGrid,
+  ReferenceLine,
 } from 'recharts'
 
 interface DataPoint {
@@ -19,6 +20,7 @@ interface DataPoint {
 interface Props {
   data: DataPoint[]
   period: string
+  annotations?: { id: string; date: string; text: string }[]
 }
 
 function formatDate(iso: string, period: string) {
@@ -29,11 +31,16 @@ function formatDate(iso: string, period: string) {
   return d.toLocaleDateString([], { month: 'short', day: 'numeric' })
 }
 
-export function PageviewsChart({ data, period }: Props) {
+export function PageviewsChart({ data, period, annotations = [] }: Props) {
   const formatted = data.map((d) => ({
     ...d,
     label: formatDate(d.date, period),
   }))
+  // Markers sit on the day's x position. The hourly "today" view has no day axis, so none are drawn.
+  const markers = period === 'today' ? [] : annotations.flatMap((a) => {
+    const point = data.find((d) => d.date.slice(0, 10) === a.date)
+    return point ? [{ id: a.id, x: formatDate(point.date, period), text: a.text }] : []
+  })
 
   return (
     <div className="card p-5">
@@ -72,6 +79,15 @@ export function PageviewsChart({ data, period }: Props) {
               contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'inherit' }}
               labelStyle={{ fontWeight: 600 }}
             />
+            {markers.map((m) => (
+              <ReferenceLine
+                key={m.id}
+                x={m.x}
+                stroke="#f59e0b"
+                strokeDasharray="4 3"
+                label={{ value: m.text.length > 18 ? `${m.text.slice(0, 17)}…` : m.text, position: 'insideTopLeft', fontSize: 10, fill: '#f59e0b' }}
+              />
+            ))}
             <Area
               type="monotone"
               dataKey="views"

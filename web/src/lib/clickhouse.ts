@@ -14,6 +14,8 @@ export const ch =
     request_timeout: 30_000,
     clickhouse_settings: {
       async_insert: 0,
+      // UInt64 counts are returned as JSON strings by default, which made `a + b` concatenate ("01480").
+      output_format_json_quote_64bit_integers: 0,
     },
   })
 

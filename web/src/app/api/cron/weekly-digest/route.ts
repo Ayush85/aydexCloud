@@ -1,7 +1,9 @@
+import { validCronAuth } from '@/lib/security'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getInsights } from '@/lib/reports'
 import { totals } from '@/lib/stats'
+import { postWebhook } from '@/lib/webhook'
 import { sendWeeklyDigest, type SiteDigest } from '@/lib/email'
 
 export const dynamic = 'force-dynamic'
@@ -19,8 +21,7 @@ export async function POST(req: NextRequest) {
 
 async function handleWeeklyDigest(req: NextRequest) {
   const secret = process.env.CRON_SECRET
-  const header = req.headers.get('authorization') ?? ''
-  if (!secret || header !== `Bearer ${secret}`) {
+  if (!validCronAuth(req.headers.get('authorization'), secret)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -42,13 +43,18 @@ async function handleWeeklyDigest(req: NextRequest) {
           totals({ ...w, prev: true }),
           getInsights(site, 7),
         ])
-        digests.push({
+        const d: SiteDigest = {
           name: site.name,
           views: Number(cur.total_views),
           visitors: Number(cur.unique_visitors),
           prevViews: Number(prev.total_views),
           insights: insights.filter((i) => i.kind !== 'note').slice(0, 3).map((i) => i.text),
-        })
+        }
+        digests.push(d)
+        if (site.webhookUrl) {
+          const lines = [`*${site.name}: weekly summary*`, `${d.views.toLocaleString()} pageviews, ${d.visitors.toLocaleString()} visitors`, ...(d.insights ?? []).map((t) => `• ${t}`)]
+          await postWebhook(site.webhookUrl, lines.join('\n'))
+        }
       } catch (err) {
         // One site's failed query must not stop everyone else's digest.
         console.error('weekly digest: site failed', site.id, err)

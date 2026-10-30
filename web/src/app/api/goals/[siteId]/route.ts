@@ -1,3 +1,4 @@
+import { cleanStr } from '@/lib/security'
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -34,7 +35,10 @@ export async function POST(req: NextRequest, { params }: { params: { siteId: str
   const site = await ownedSite(params.siteId, session.user.id)
   if (!site) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const { name, type, matchValue } = await req.json()
+  const b = (await req.json().catch(() => null)) as { name?: unknown; type?: unknown; matchValue?: unknown } | null
+  const name = cleanStr(b?.name, 1, 100)
+  const matchValue = cleanStr(b?.matchValue, 1, 200)
+  const type = b?.type
   if (!name || !matchValue || (type !== 'pageview' && type !== 'event')) {
     return NextResponse.json(
       { error: 'name, type ("pageview" | "event"), and matchValue are required.' },

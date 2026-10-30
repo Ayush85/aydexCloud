@@ -1,6 +1,6 @@
 'use client'
 
-import { useSession } from 'next-auth/react'
+import { useSession, signOut } from 'next-auth/react'
 import Link from 'next/link'
 import { ThemeToggle } from './ThemeToggle'
 import { Logo } from './Logo'
@@ -23,11 +23,12 @@ export function DashboardHeader({ breadcrumb }: Props) {
           </>
         )}
         <div className="ml-auto flex items-center gap-4 text-sm text-slate-500 dark:text-zinc-400">
+          <Link href="/docs" className="hover:text-slate-900 dark:hover:text-zinc-100 hidden sm:inline">Help</Link>
           <Link href="/dashboard/billing" className="hover:text-slate-900 dark:hover:text-zinc-100 hidden sm:inline">Billing</Link>
           <Link href="/dashboard/settings/api-keys" className="hover:text-slate-900 dark:hover:text-zinc-100 hidden sm:inline">API keys</Link>
           <ThemeToggle />
           {session?.user?.email && <span className="hidden md:inline">{session.user.email}</span>}
-          <Link href="/api/auth/signout" className="hover:text-slate-900 dark:hover:text-zinc-100">Sign out</Link>
+          <button type="button" onClick={() => signOut({ callbackUrl: '/auth/signin' })} className="hover:text-slate-900 dark:hover:text-zinc-100">Sign out</button>
         </div>
       </div>
     </header>

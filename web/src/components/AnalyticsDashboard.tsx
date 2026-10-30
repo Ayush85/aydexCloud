@@ -8,6 +8,7 @@ import { DeviceBreakdown } from './DeviceBreakdown'
 import { LiveBadge } from './LiveBadge'
 import { CampaignsTable } from './CampaignsTable'
 import { SharePanel } from './SharePanel'
+import { InstallCheck } from './InstallCheck'
 import { CustomCharts } from './CustomCharts'
 import { DataStorageInfo } from './DataStorageInfo'
 import { EncryptionPanel } from './EncryptionPanel'
@@ -20,20 +21,26 @@ import { RevenuePanel } from './RevenuePanel'
 import { FunnelsPanel } from './FunnelsPanel'
 import { ImportPanel } from './ImportPanel'
 import { PeriodPicker } from './PeriodPicker'
+import { AnnotationsPanel } from './AnnotationsPanel'
+import { AlertsPanel } from './AlertsPanel'
 import { HeatmapPanel } from './HeatmapPanel'
 import { CountriesPanel } from './CountriesPanel'
 import type { DashboardData, Period } from './dashboardTypes'
 
 type Tab =
   | 'overview' | 'behavior' | 'funnels' | 'revenue' | 'campaigns' | 'goals'
-  | 'custom' | 'privacy' | 'encryption' | 'share'
+  | 'alerts' | 'custom' | 'privacy' | 'encryption' | 'share'
 
 interface Props {
   siteId: string
   siteName: string
+  domain: string
   trackingId: string
   isPublic: boolean
   publicToken: string | null
+  alertsEnabled: boolean
+  alertsAllowed: boolean
+  webhook: string | null
 }
 
 const TABS: { key: Tab; label: string }[] = [
@@ -43,6 +50,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: 'revenue',    label: 'Revenue' },
   { key: 'campaigns',  label: 'Campaigns & Events' },
   { key: 'goals',      label: 'Goals' },
+  { key: 'alerts',     label: 'Alerts' },
   { key: 'custom',     label: 'Custom Charts' },
   { key: 'privacy',    label: 'Privacy & Data' },
   { key: 'encryption', label: 'Encryption' },
@@ -63,7 +71,7 @@ function Skeleton() {
   )
 }
 
-export function AnalyticsDashboard({ siteId, siteName, trackingId, isPublic, publicToken }: Props) {
+export function AnalyticsDashboard({ siteId, siteName, domain, trackingId, isPublic, publicToken, alertsEnabled, alertsAllowed, webhook }: Props) {
   const [period, setPeriod] = useState<Period>('7d')
   const [tab, setTab]       = useState<Tab>('overview')
   const [data, setData]     = useState<DashboardData | null>(null)
@@ -140,7 +148,8 @@ export function AnalyticsDashboard({ siteId, siteName, trackingId, isPublic, pub
             <InsightsPanel insights={data.insights} />
             <StatsCards totals={data.totals} prevTotals={data.prevTotals} chart={data.chart} />
             <EngagementCards cur={data.engagement} prev={data.prevEngagement} />
-            <PageviewsChart data={data.chart} period={period} />
+            <PageviewsChart data={data.chart} period={period} annotations={data.annotations} />
+            <AnnotationsPanel siteId={siteId} notes={data.annotations} onChange={fetchData} />
             {data.hasImported && (
               <p className="text-xs text-slate-400 dark:text-zinc-500 -mt-3">
                 Includes imported history for dates before your first aydex pageview.
@@ -214,6 +223,7 @@ export function AnalyticsDashboard({ siteId, siteName, trackingId, isPublic, pub
         ) : null
       )}
 
+      {tab === 'alerts' && <AlertsPanel siteId={siteId} initialEnabled={alertsEnabled} allowed={alertsAllowed} initialWebhook={webhook} />}
       {tab === 'custom' && <CustomCharts siteId={siteId} />}
       {tab === 'privacy' && <DataStorageInfo />}
 
@@ -228,6 +238,7 @@ export function AnalyticsDashboard({ siteId, siteName, trackingId, isPublic, pub
       {/* ── Share, API & Import ──────────────────────────── */}
       {tab === 'share' && (
         <div className="mt-4 space-y-6">
+          <InstallCheck siteId={siteId} domain={domain} />
           <SharePanel siteId={siteId} initialIsPublic={isPublic} initialPublicToken={publicToken} />
           <ImportPanel siteId={siteId} />
           <div className="card p-5 text-sm text-slate-600 dark:text-zinc-400 space-y-2">

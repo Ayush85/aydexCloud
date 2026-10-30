@@ -107,6 +107,23 @@ export function SharePanel({ siteId, initialIsPublic, initialPublicToken }: Prop
         </div>
       )}
 
+      {/* Visitor badge */}
+      {isPublic && token && (
+        <div className="card p-5 space-y-3">
+          <p className="text-sm font-medium text-slate-700 dark:text-zinc-300">Visitor badge</p>
+          <p className="text-xs text-slate-500 dark:text-zinc-400">
+            A small image showing unique visitors over the last 7 days. It updates hourly and works only while the public link is on.
+          </p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={`/api/badge/${token}`} alt="Visitors in the last 7 days" height={20} />
+          <div className="rounded-lg bg-slate-900 p-3 overflow-x-auto">
+            <code className="text-green-400 text-xs font-mono whitespace-nowrap">
+              {`<img src="${typeof window !== 'undefined' ? window.location.origin : ''}/api/badge/${token}" alt="Visitors in the last 7 days" height="20">`}
+            </code>
+          </div>
+        </div>
+      )}
+
       {/* Custom events guide */}
       <div className="card p-5 space-y-3">
         <p className="text-sm font-medium text-slate-700 dark:text-zinc-300">Track custom events</p>

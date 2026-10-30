@@ -1,3 +1,4 @@
+import { cleanStr } from '@/lib/security'
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { randomBytes } from 'crypto'
@@ -27,8 +28,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { name } = await req.json()
-  if (!name) return NextResponse.json({ error: 'Name is required.' }, { status: 400 })
+  const b = (await req.json().catch(() => null)) as { name?: unknown } | null
+  const name = cleanStr(b?.name, 1, 60)
+  if (!name) return NextResponse.json({ error: 'Name is required (up to 60 characters).' }, { status: 400 })
+  if ((await prisma.apiKey.count({ where: { userId: session.user.id } })) >= 25) {
+    return NextResponse.json({ error: 'Limit of 25 API keys reached.' }, { status: 400 })
+  }
 
   const rawKey = `ax_live_${randomBytes(16).toString('hex')}`
   const apiKey = await prisma.apiKey.create({
