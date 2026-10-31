@@ -48,25 +48,27 @@ jobs:
           PORT: ${{ secrets.DEPLOY_PORT || secrets.VPS_PORT }}
           BRANCH: ${{ github.ref_name }}
         run: |
-          ssh -i ~/.ssh/deploy_key -p "${PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes \
-            "$USER_@$HOST" 'bash -s' "$BRANCH" <<'REMOTE'
-          set -euo pipefail
-          # A fresh SSH session starts in $HOME, not in the project, so move into the repo first.
-          BRANCH="$1"
+          set -uo pipefail
+          # Keepalives stop idle-connection drops during quiet steps such as `npm install`.
+          SSH=(ssh -i ~/.ssh/deploy_key -p "${PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes
+               -o ServerAliveInterval=15 -o ServerAliveCountMax=8 -o ConnectTimeout=20 "$USER_@$HOST")
           [[ "$BRANCH" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "bad branch name"; exit 1; }
-          cd ~/aydexCloud
-          git fetch origin "$BRANCH"
-          git checkout "$BRANCH"
-          git merge --ff-only "origin/$BRANCH" || { echo "server checkout has local changes or diverged:"; git status --short; exit 1; }
-          git log --oneline -1
-          docker compose build --pull web tracker
-          docker compose up -d web tracker
-          docker compose exec -T web npx prisma db push
-          docker image prune -f >/dev/null
-          # Wait for both services to answer.
-          for i in $(seq 1 30); do
-            curl -fsS -o /dev/null http://127.0.0.1:3001/health && curl -fsS -o /dev/null http://127.0.0.1:3000/ && { echo "healthy"; exit 0; }
-            sleep 3
+
+          # 1. Upload the script, then start it DETACHED on the server so a dropped connection cannot kill the build.
+          "${SSH[@]}" 'cat > ~/.deploy.sh && chmod 700 ~/.deploy.sh && rm -f ~/.deploy.status ~/.deploy.log' < deploy/remote-deploy.sh || { echo "::error::upload failed"; exit 1; }
+          "${SSH[@]}" "setsid nohup bash -c '(bash ~/.deploy.sh $BRANCH; echo \$? > ~/.deploy.status) > ~/.deploy.log 2>&1' < /dev/null > /dev/null 2>&1 & echo started" || { echo "::error::could not start deploy"; exit 1; }
+
+          # 2. Poll for new log lines and the exit status. Tolerates short SSH hiccups.
+          sent=0; fails=0
+          for i in $(seq 1 160); do   # up to ~40 minutes
+            sleep 15
+            out=$("${SSH[@]}" "tail -n +$((sent+1)) ~/.deploy.log 2>/dev/null; echo __STATUS__; cat ~/.deploy.status 2>/dev/null || true") || { fails=$((fails+1)); [ "$fails" -ge 8 ] && { echo "::error::lost contact with the server"; exit 1; }; continue; }
+            fails=0
+            log=${out%%__STATUS__*}; status=$(printf '%s' "${out#*__STATUS__}" | tr -d '[:space:]')
+            if [ -n "$log" ]; then printf '%s' "$log"; sent=$((sent + $(printf '%s' "$log" | wc -l))); fi
+            if [ -n "$status" ]; then
+              [ "$status" = "0" ] && { echo "Deploy finished OK"; exit 0; }
+              echo "::error::Deploy failed on the server (exit $status)"; exit 1
+            fi
           done
-          echo "services did not become healthy"; docker compose ps; exit 1
-          REMOTE
+          echo "::error::Deploy timed out"; exit 1
