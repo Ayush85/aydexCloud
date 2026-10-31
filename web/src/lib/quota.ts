@@ -26,3 +26,22 @@ export async function syncUserQuotas(userId: string): Promise<void> {
   const sites = await prisma.site.findMany({ where: { userId } })
   await Promise.all(sites.map((s) => syncSiteQuota(s.id)))
 }
+
+/** Re-syncs every site's cap from the database (source of truth). Run hourly so a plan edited directly in
+ *  the database, a flushed Redis, or a missed webhook can never leave a site on the 10,000 Free default. */
+export async function syncAllQuotas(): Promise<number> {
+  const sites = await prisma.site.findMany({ select: { id: true } })
+  for (const s of sites) await syncSiteQuota(s.id)
+  return sites.length
+}
+
+/** Pageviews counted against this month's cap (includes ones dropped after the cap was hit). */
+export async function monthlyUsed(trackingId: string): Promise<number | null> {
+  try {
+    const ym = new Date().toISOString().slice(0, 7).replace('-', '')
+    const v = await redis.get(`quota:used:${trackingId}:${ym}`)
+    return v === null ? 0 : Number(v)
+  } catch {
+    return null
+  }
+}

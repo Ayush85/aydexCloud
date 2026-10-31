@@ -35,6 +35,8 @@ interface Props {
   siteId: string
   siteName: string
   domain: string
+  quotaUsed: number | null
+  quotaLimit: number | null
   trackingId: string
   isPublic: boolean
   publicToken: string | null
@@ -71,7 +73,7 @@ function Skeleton() {
   )
 }
 
-export function AnalyticsDashboard({ siteId, siteName, domain, trackingId, isPublic, publicToken, alertsEnabled, alertsAllowed, webhook }: Props) {
+export function AnalyticsDashboard({ siteId, siteName, domain, quotaUsed, quotaLimit, trackingId, isPublic, publicToken, alertsEnabled, alertsAllowed, webhook }: Props) {
   const [period, setPeriod] = useState<Period>('7d')
   const [tab, setTab]       = useState<Tab>('overview')
   const [data, setData]     = useState<DashboardData | null>(null)
@@ -98,8 +100,14 @@ export function AnalyticsDashboard({ siteId, siteName, domain, trackingId, isPub
     window.open(`/api/analytics/${siteId}/export?period=${period}`, '_blank')
   }
 
+  const overQuota = quotaUsed !== null && quotaLimit !== null && quotaUsed > quotaLimit
   return (
     <div>
+      {overQuota && (
+        <div role="alert" className="mb-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+          <strong>Monthly pageview limit reached.</strong> This site has used {quotaUsed!.toLocaleString()} of {quotaLimit!.toLocaleString()} pageviews this month, so new pageviews are not being recorded (live visitors and engagement still show). It resets next month, or <a href="/dashboard/billing" className="underline">upgrade your plan</a>.
+        </div>
+      )}
       {/* Tab bar */}
       <div className="flex items-center justify-between mb-1">
         <div className="flex gap-1 border-b border-slate-200 dark:border-zinc-800 w-full overflow-x-auto">
