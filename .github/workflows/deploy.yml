@@ -1,13 +1,11 @@
 name: Deploy
 
-# Runs after CI succeeds on main. Needs these repository secrets:
+# Deploys on every push to main or deploy/self-hosted (and on manual run). Needs these repository secrets:
 #   VPS_HOST (hostname or IP), VPS_USER, VPS_SSH_KEY (private key, full PEM/OpenSSH text)
 # Optional: VPS_PORT (default 22), VPS_KNOWN_HOSTS (output of `ssh-keyscan -H your.host`; pins the server key).
 on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
-    branches: [main]
+  push:
+    branches: [main, deploy/self-hosted]
   workflow_dispatch:
 
 concurrency:
@@ -16,7 +14,6 @@ concurrency:
 
 jobs:
   deploy:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -39,15 +36,18 @@ jobs:
           HOST: ${{ secrets.VPS_HOST }}
           USER_: ${{ secrets.VPS_USER }}
           PORT: ${{ secrets.VPS_PORT }}
+          BRANCH: ${{ github.ref_name }}
         run: |
           ssh -i ~/.ssh/deploy_key -p "${PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes \
-            "$USER_@$HOST" 'bash -se' <<'REMOTE'
+            "$USER_@$HOST" 'bash -s' "$BRANCH" <<'REMOTE'
           set -euo pipefail
           # A fresh SSH session starts in $HOME, not in the project, so move into the repo first.
+          BRANCH="$1"
+          [[ "$BRANCH" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "bad branch name"; exit 1; }
           cd ~/aydexCloud
-          git fetch origin main
-          git checkout main
-          git merge --ff-only origin/main
+          git fetch origin "$BRANCH"
+          git checkout "$BRANCH"
+          git merge --ff-only "origin/$BRANCH" || { echo "server checkout has local changes or diverged:"; git status --short; exit 1; }
           git log --oneline -1
           docker compose build --pull web tracker
           docker compose up -d web tracker
