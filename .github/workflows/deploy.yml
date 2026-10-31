@@ -18,6 +18,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
+      # The job needs deploy/remote-deploy.sh from the repo to upload it to the server.
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: deploy
+
       - name: Set up SSH
         env:
           KEY: ${{ secrets.VPS_SSH_KEY }}
