@@ -1,0 +1,79 @@
+name: Deploy
+
+# Deploys on every push to main or deploy/self-hosted (and on manual run). Needs these repository secrets:
+#   DEPLOY_HOST (hostname or IP), DEPLOY_USER, VPS_SSH_KEY (private key, full OpenSSH text)
+#   (VPS_HOST / VPS_USER / VPS_PORT are accepted as alternative names)
+# Optional: DEPLOY_PORT (default 22), VPS_KNOWN_HOSTS (output of `ssh-keyscan -H your.host`; pins the server key).
+on:
+  push:
+    branches: [main, deploy/self-hosted]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      # The job needs deploy/remote-deploy.sh from the repo to upload it to the server.
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: deploy
+
+      - name: Set up SSH
+        env:
+          KEY: ${{ secrets.VPS_SSH_KEY }}
+          HOST: ${{ secrets.DEPLOY_HOST || secrets.VPS_HOST }}
+          PORT: ${{ secrets.DEPLOY_PORT || secrets.VPS_PORT }}
+          KNOWN: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          [ -n "$KEY" ] && [ -n "$HOST" ] || { echo "VPS_SSH_KEY and DEPLOY_HOST secrets are required"; exit 1; }
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
+          if [ -n "$KNOWN" ]; then
+            printf '%s\n' "$KNOWN" > ~/.ssh/known_hosts
+          else
+            # Show why it fails instead of hiding it: wrong host, closed port, or a firewall blocking GitHub.
+            if ! ssh-keyscan -T 10 -p "${PORT:-22}" -H "$HOST" > ~/.ssh/known_hosts 2> ~/.ssh/keyscan.err || [ ! -s ~/.ssh/known_hosts ]; then
+              echo "::error::Cannot reach ${HOST}:${PORT:-22} from GitHub (no SSH host key returned)."
+              echo "Check: VPS_HOST is only a hostname or IP (no user@, no ssh://); VPS_PORT if SSH is not on 22; the firewall/cloud security group allows SSH from the internet."
+              cat ~/.ssh/keyscan.err || true
+              exit 1
+            fi
+          fi
+
+      - name: Deploy over SSH
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST || secrets.VPS_HOST }}
+          USER_: ${{ secrets.DEPLOY_USER || secrets.VPS_USER }}
+          PORT: ${{ secrets.DEPLOY_PORT || secrets.VPS_PORT }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -uo pipefail
+          # Keepalives stop idle-connection drops during quiet steps such as `npm install`.
+          SSH=(ssh -i ~/.ssh/deploy_key -p "${PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes
+               -o ServerAliveInterval=15 -o ServerAliveCountMax=8 -o ConnectTimeout=20 "$USER_@$HOST")
+          [[ "$BRANCH" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "bad branch name"; exit 1; }
+
+          # 1. Upload the script, then start it DETACHED on the server so a dropped connection cannot kill the build.
+          "${SSH[@]}" 'cat > ~/.deploy.sh && chmod 700 ~/.deploy.sh && rm -f ~/.deploy.status ~/.deploy.log' < deploy/remote-deploy.sh || { echo "::error::upload failed"; exit 1; }
+          "${SSH[@]}" "setsid nohup bash -c '(bash ~/.deploy.sh $BRANCH; echo \$? > ~/.deploy.status) > ~/.deploy.log 2>&1' < /dev/null > /dev/null 2>&1 & echo started" || { echo "::error::could not start deploy"; exit 1; }
+
+          # 2. Poll for new log lines and the exit status. Tolerates short SSH hiccups.
+          sent=0; fails=0
+          for i in $(seq 1 160); do   # up to ~40 minutes
+            sleep 15
+            out=$("${SSH[@]}" "tail -n +$((sent+1)) ~/.deploy.log 2>/dev/null; echo __STATUS__; cat ~/.deploy.status 2>/dev/null || true") || { fails=$((fails+1)); [ "$fails" -ge 8 ] && { echo "::error::lost contact with the server"; exit 1; }; continue; }
+            fails=0
+            log=${out%%__STATUS__*}; status=$(printf '%s' "${out#*__STATUS__}" | tr -d '[:space:]')
+            if [ -n "$log" ]; then printf '%s' "$log"; sent=$((sent + $(printf '%s' "$log" | wc -l))); fi
+            if [ -n "$status" ]; then
+              [ "$status" = "0" ] && { echo "Deploy finished OK"; exit 0; }
+              echo "::error::Deploy failed on the server (exit $status)"; exit 1
+            fi
+          done
+          echo "::error::Deploy timed out"; exit 1

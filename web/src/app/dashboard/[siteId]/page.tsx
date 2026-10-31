@@ -6,6 +6,7 @@ import { AnalyticsDashboard } from '@/components/AnalyticsDashboard'
 import { TrackingSnippet } from '@/components/TrackingSnippet'
 import { DashboardHeader } from '@/components/DashboardHeader'
 import { PLANS } from '@/lib/plans'
+import { syncSiteQuota, monthlyUsed } from '@/lib/quota'
 import { maskWebhook } from '@/lib/webhook'
 
 export const dynamic = 'force-dynamic'
@@ -24,6 +25,10 @@ export default async function SiteAnalyticsPage({
   })
   if (!site) notFound()
 
+  // Self-heal: make sure the tracker enforces THIS plan's cap, then report usage against it.
+  await syncSiteQuota(site.id)
+  const quotaUsed = await monthlyUsed(site.trackingId)
+  const quotaLimit = PLANS[site.user.planTier].maxPageviews
   const trackerUrl = process.env.NEXT_PUBLIC_TRACKER_URL ?? 'http://localhost:3001'
 
   return (
@@ -49,6 +54,8 @@ export default async function SiteAnalyticsPage({
           siteId={site.id}
           siteName={site.name}
           domain={site.domain}
+          quotaUsed={quotaUsed}
+          quotaLimit={Number.isFinite(quotaLimit) ? quotaLimit : null}
           trackingId={site.trackingId}
           isPublic={site.isPublic}
           publicToken={site.publicToken}
