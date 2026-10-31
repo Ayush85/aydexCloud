@@ -1,8 +1,9 @@
 name: Deploy
 
 # Deploys on every push to main or deploy/self-hosted (and on manual run). Needs these repository secrets:
-#   VPS_HOST (hostname or IP), VPS_USER, VPS_SSH_KEY (private key, full PEM/OpenSSH text)
-# Optional: VPS_PORT (default 22), VPS_KNOWN_HOSTS (output of `ssh-keyscan -H your.host`; pins the server key).
+#   DEPLOY_HOST (hostname or IP), DEPLOY_USER, VPS_SSH_KEY (private key, full OpenSSH text)
+#   (VPS_HOST / VPS_USER / VPS_PORT are accepted as alternative names)
+# Optional: DEPLOY_PORT (default 22), VPS_KNOWN_HOSTS (output of `ssh-keyscan -H your.host`; pins the server key).
 on:
   push:
     branches: [main, deploy/self-hosted]
@@ -20,12 +21,12 @@ jobs:
       - name: Set up SSH
         env:
           KEY: ${{ secrets.VPS_SSH_KEY }}
-          HOST: ${{ secrets.VPS_HOST }}
-          PORT: ${{ secrets.VPS_PORT }}
+          HOST: ${{ secrets.DEPLOY_HOST || secrets.VPS_HOST }}
+          PORT: ${{ secrets.DEPLOY_PORT || secrets.VPS_PORT }}
           KNOWN: ${{ secrets.VPS_KNOWN_HOSTS }}
         run: |
           set -euo pipefail
-          [ -n "$KEY" ] && [ -n "$HOST" ] || { echo "VPS_SSH_KEY and VPS_HOST secrets are required"; exit 1; }
+          [ -n "$KEY" ] && [ -n "$HOST" ] || { echo "VPS_SSH_KEY and DEPLOY_HOST secrets are required"; exit 1; }
           install -m 700 -d ~/.ssh
           printf '%s\n' "$KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
           if [ -n "$KNOWN" ]; then
@@ -42,9 +43,9 @@ jobs:
 
       - name: Deploy over SSH
         env:
-          HOST: ${{ secrets.VPS_HOST }}
-          USER_: ${{ secrets.VPS_USER }}
-          PORT: ${{ secrets.VPS_PORT }}
+          HOST: ${{ secrets.DEPLOY_HOST || secrets.VPS_HOST }}
+          USER_: ${{ secrets.DEPLOY_USER || secrets.VPS_USER }}
+          PORT: ${{ secrets.DEPLOY_PORT || secrets.VPS_PORT }}
           BRANCH: ${{ github.ref_name }}
         run: |
           ssh -i ~/.ssh/deploy_key -p "${PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes \
