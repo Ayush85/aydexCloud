@@ -28,8 +28,17 @@ jobs:
           [ -n "$KEY" ] && [ -n "$HOST" ] || { echo "VPS_SSH_KEY and VPS_HOST secrets are required"; exit 1; }
           install -m 700 -d ~/.ssh
           printf '%s\n' "$KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
-          if [ -n "$KNOWN" ]; then printf '%s\n' "$KNOWN" > ~/.ssh/known_hosts
-          else ssh-keyscan -p "${PORT:-22}" -H "$HOST" > ~/.ssh/known_hosts 2>/dev/null; fi
+          if [ -n "$KNOWN" ]; then
+            printf '%s\n' "$KNOWN" > ~/.ssh/known_hosts
+          else
+            # Show why it fails instead of hiding it: wrong host, closed port, or a firewall blocking GitHub.
+            if ! ssh-keyscan -T 10 -p "${PORT:-22}" -H "$HOST" > ~/.ssh/known_hosts 2> ~/.ssh/keyscan.err || [ ! -s ~/.ssh/known_hosts ]; then
+              echo "::error::Cannot reach ${HOST}:${PORT:-22} from GitHub (no SSH host key returned)."
+              echo "Check: VPS_HOST is only a hostname or IP (no user@, no ssh://); VPS_PORT if SSH is not on 22; the firewall/cloud security group allows SSH from the internet."
+              cat ~/.ssh/keyscan.err || true
+              exit 1
+            fi
+          fi
 
       - name: Deploy over SSH
         env:
